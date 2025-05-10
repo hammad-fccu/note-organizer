@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useNotes } from '@/store/NoteStore';
+import NoteSummary from '@/components/NoteSummary';
+import NoteTabs from '@/components/NoteTabs';
+import { SummaryType } from '@/utils/aiSummary';
 
 interface NotePageProps {
   params: {
@@ -14,7 +17,7 @@ interface NotePageProps {
 export default function NotePage({ params }: NotePageProps) {
   const { id } = params;
   const router = useRouter();
-  const { getNoteById, updateNote, deleteNote, favoriteNote } = useNotes();
+  const { getNoteById, updateNote, deleteNote, favoriteNote, addSummaryToNote } = useNotes();
   
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState('');
@@ -22,6 +25,11 @@ export default function NotePage({ params }: NotePageProps) {
   const [tags, setTags] = useState('');
   const [isFavorite, setIsFavorite] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [summary, setSummary] = useState<{
+    text: string;
+    type: SummaryType;
+    createdAt: string;
+  } | undefined>(undefined);
   
   // Load note data
   useEffect(() => {
@@ -31,6 +39,7 @@ export default function NotePage({ params }: NotePageProps) {
       setContent(note.content);
       setTags(note.tags.join(', '));
       setIsFavorite(note.favorite);
+      setSummary(note.summary);
     } else {
       setNotFound(true);
     }
@@ -57,6 +66,55 @@ export default function NotePage({ params }: NotePageProps) {
     favoriteNote(id, !isFavorite);
     setIsFavorite(!isFavorite);
   };
+  
+  const handleSummarize = (summaryText: string, type: SummaryType) => {
+    const newSummary = {
+      text: summaryText,
+      type,
+      createdAt: new Date().toISOString()
+    };
+    addSummaryToNote(id, summaryText, type);
+    setSummary(newSummary);
+  };
+
+  // Render note content tab
+  const renderNoteContent = () => (
+    <div>
+      <div className="mb-6">
+        <h2 className="text-xl font-bold mb-4">{title || 'Untitled Note'}</h2>
+        <div className="prose dark:prose-invert max-w-none">
+          {content.split('\n').map((paragraph, index) => (
+            <p key={index}>{paragraph}</p>
+          ))}
+        </div>
+      </div>
+      
+      {tags && (
+        <div className="mb-4">
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tags:</h3>
+          <div className="flex flex-wrap gap-2">
+            {tags.split(',').map((tag, index) => (
+              <span
+                key={index}
+                className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm"
+              >
+                {tag.trim()}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+  
+  // Render AI tools tab
+  const renderAITools = () => (
+    <NoteSummary 
+      noteContent={content}
+      onSummarize={handleSummarize}
+      existingSummary={summary}
+    />
+  );
   
   if (notFound) {
     return (
@@ -208,22 +266,36 @@ export default function NotePage({ params }: NotePageProps) {
           </div>
         ) : (
           <div>
-            {/* Display tags */}
-            {tags && (
-              <div className="mb-4 flex flex-wrap gap-1">
-                {tags.split(',').map((tag, i) => (
-                  <span key={i} className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                    {tag.trim()}
-                  </span>
-                ))}
-              </div>
-            )}
+            <NoteTabs tabs={[
+              {
+                id: 'content',
+                label: 'Note',
+                icon: (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                ),
+                content: renderNoteContent()
+              },
+              {
+                id: 'ai',
+                label: 'AI Tools',
+                icon: (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                  </svg>
+                ),
+                content: renderAITools()
+              }
+            ]} />
             
-            {/* Display content */}
-            <div className="prose dark:prose-invert max-w-none">
-              {content.split('\n').map((paragraph, i) => (
-                <p key={i}>{paragraph}</p>
-              ))}
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+              <button
+                onClick={() => setIsEditing(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                Edit Note
+              </button>
             </div>
           </div>
         )}

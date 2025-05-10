@@ -9,4 +9,9 @@ export interface Note {
   sourceFileType?: string;
   createdAt: string;
   updatedAt: string;
+  summary?: {
+    text: string;
+    type: 'brief' | 'detailed' | 'bullets';
+    createdAt: string;
+  };
 } 

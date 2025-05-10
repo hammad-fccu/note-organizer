@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+/OLD_APP_BACKEND_CODE_UNUSED
 
 # debug
 npm-debug.log*

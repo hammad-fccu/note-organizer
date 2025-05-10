@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Note } from '@/types/note';
+import { SummaryType } from '@/utils/aiSummary';
 
 interface NoteContextType {
   notes: Note[];
@@ -14,6 +15,7 @@ interface NoteContextType {
   getNotesWithTag: (tag: string) => Note[];
   getFavorites: () => Note[];
   getAllTags: () => string[];
+  addSummaryToNote: (id: string, summary: string, type: SummaryType) => void;
 }
 
 const NoteContext = createContext<NoteContextType | undefined>(undefined);
@@ -117,6 +119,16 @@ export function NoteProvider({ children }: NoteProviderProps) {
     return Array.from(tagSet);
   };
   
+  const addSummaryToNote = (id: string, summary: string, type: SummaryType) => {
+    updateNote(id, { 
+      summary: {
+        text: summary,
+        type,
+        createdAt: new Date().toISOString()
+      } 
+    });
+  };
+  
   const value = {
     notes,
     addNote,
@@ -129,6 +141,7 @@ export function NoteProvider({ children }: NoteProviderProps) {
     getNotesWithTag,
     getFavorites,
     getAllTags,
+    addSummaryToNote,
   };
   
   return <NoteContext.Provider value={value}>{children}</NoteContext.Provider>;
