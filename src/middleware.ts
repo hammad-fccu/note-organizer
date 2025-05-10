@@ -19,12 +19,17 @@ export async function middleware(request: NextRequest) {
     pathname === route || pathname.startsWith('/api/auth/')
   );
   
+  // For debugging
+  console.log(`Middleware: Path=${pathname}, HasToken=${!!token}, IsPublicRoute=${isPublicRoute}`);
+  
   // Redirect logic
   if (!token && !isPublicRoute) {
     // Redirect to login if accessing protected route without auth
+    console.log(`Redirecting to signin: ${pathname} requires authentication`);
     return NextResponse.redirect(new URL('/auth/signin', request.url));
   } else if (token && (pathname === '/auth/signin' || pathname === '/auth/signup')) {
     // Redirect to app if accessing auth pages while logged in
+    console.log(`Redirecting to app: User is already authenticated`);
     return NextResponse.redirect(new URL('/app', request.url));
   }
   

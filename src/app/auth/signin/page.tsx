@@ -28,11 +28,17 @@ export default function SignIn() {
       if (result?.error) {
         setError('Invalid email or password. Please try again.');
         setIsLoading(false);
+      } else if (result?.ok) {
+        // Successfully signed in, perform a hard redirect instead of router.push
+        console.log('Authentication successful, redirecting to app page...');
+        window.location.href = '/app';
       } else {
-        // Successfully signed in, redirect to app
-        router.push('/app');
+        // Handle unexpected response
+        setError('Authentication failed. Please try again.');
+        setIsLoading(false);
       }
     } catch (error) {
+      console.error('Sign-in error:', error);
       setError('An error occurred. Please try again.');
       setIsLoading(false);
     }
@@ -50,6 +56,9 @@ export default function SignIn() {
           <div className="text-center">
             <h1 className="text-3xl font-extrabold">Sign In</h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">Welcome back! Sign in to your account</p>
+            <div className="mt-2 text-sm text-blue-600 dark:text-blue-400">
+              <p>Test user: test@example.com / password123</p>
+            </div>
           </div>
 
           {error && (
