@@ -2,11 +2,23 @@
 
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useNotes } from '@/store/NoteStore';
 
 export default function AppDashboard() {
   const { data: session } = useSession();
-  const [notes, setNotes] = useState<any[]>([]); // Will be replaced with real notes in Task 5
+  const { notes, getAllTags, getFavorites } = useNotes();
+  
+  // Get counts for the dashboard
+  const totalNotes = notes.length;
+  const allTags = getAllTags();
+  const favorites = getFavorites();
+  const totalTags = allTags.length;
+  const totalFavorites = favorites.length;
+  
+  // Get recent notes (last 6)
+  const recentNotes = [...notes]
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 6);
 
   return (
     <div className="p-6">
@@ -27,7 +39,7 @@ export default function AppDashboard() {
               </div>
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Total Notes</p>
-                <p className="text-lg font-semibold">{notes.length}</p>
+                <p className="text-lg font-semibold">{totalNotes}</p>
               </div>
             </div>
           </div>
@@ -41,7 +53,7 @@ export default function AppDashboard() {
               </div>
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Tags</p>
-                <p className="text-lg font-semibold">0</p>
+                <p className="text-lg font-semibold">{totalTags}</p>
               </div>
             </div>
           </div>
@@ -55,7 +67,7 @@ export default function AppDashboard() {
               </div>
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Favorites</p>
-                <p className="text-lg font-semibold">0</p>
+                <p className="text-lg font-semibold">{totalFavorites}</p>
               </div>
             </div>
           </div>
@@ -139,30 +151,28 @@ export default function AppDashboard() {
           </Link>
         </div>
         
-        {notes.length > 0 ? (
+        {recentNotes.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {notes.map((note, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow">
+            {recentNotes.map(note => (
+              <div key={note.id} className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow">
                 <div className="p-4">
-                  <h3 className="font-medium mb-1 truncate">Note Title</h3>
+                  <h3 className="font-medium mb-1 truncate">{note.title}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-3">
-                    Note content preview...
+                    {note.content.substring(0, 150)}{note.content.length > 150 ? '...' : ''}
                   </p>
                   <div className="flex justify-between items-center">
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      Last edited: Today
+                      Last edited: {new Date(note.updatedAt).toLocaleDateString()}
                     </div>
                     <div className="flex space-x-2">
-                      <button className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                      <Link 
+                        href={`/app/notes/${note.id}`}
+                        className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                      >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                         </svg>
-                      </button>
-                      <button className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>

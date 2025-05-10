@@ -1,6 +1,7 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
+import { NoteProvider } from '@/store/NoteStore';
 import { ReactNode } from 'react';
 
 interface ProvidersProps {
@@ -10,7 +11,9 @@ interface ProvidersProps {
 export default function Providers({ children }: ProvidersProps) {
   return (
     <SessionProvider>
-      {children}
+      <NoteProvider>
+        {children}
+      </NoteProvider>
     </SessionProvider>
   );
 } 

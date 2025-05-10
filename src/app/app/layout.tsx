@@ -6,6 +6,8 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import ThemeToggle from '@/components/ThemeToggle';
 import { signOut } from 'next-auth/react';
+import { useNotes } from '@/store/NoteStore';
+import { usePathname } from 'next/navigation';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -13,6 +15,15 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const { data: session, status } = useSession();
+  const { notes, getAllTags, getFavorites } = useNotes();
+  const pathname = usePathname();
+  
+  // Get app data
+  const allTags = getAllTags();
+  const favoriteNotes = getFavorites();
+  
+  // Check if current page is dashboard
+  const isDashboard = pathname === '/app';
 
   // Check loading state
   if (status === 'loading') {
@@ -42,6 +53,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <Link href="/app" className="text-xl font-bold">Smart Note Organizer</Link>
             </div>
             <div className="flex items-center space-x-4">
+              {!isDashboard && (
+                <Link
+                  href="/app"
+                  className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+                  title="Home"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                  </svg>
+                </Link>
+              )}
               <ThemeToggle />
               <div className="relative group">
                 <button className="flex items-center space-x-2 focus:outline-none">
@@ -86,25 +108,43 @@ export default function AppLayout({ children }: AppLayoutProps) {
             
             {/* Notes List */}
             <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-              <button className="w-full flex items-center justify-between p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 group">
+              <Link
+                href="/app"
+                className={`w-full flex items-center justify-between p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 group ${isDashboard ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
+              >
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                  </svg>
+                  <span>Dashboard</span>
+                </div>
+              </Link>
+            
+              <Link
+                href="/app/notes"
+                className="w-full flex items-center justify-between p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 group"
+              >
                 <div className="flex items-center">
                   <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                   </svg>
                   <span>All Notes</span>
                 </div>
-                <span className="text-xs bg-gray-200 dark:bg-gray-600 rounded-full px-2 py-1">0</span>
-              </button>
+                <span className="text-xs bg-gray-200 dark:bg-gray-600 rounded-full px-2 py-1">{notes.length}</span>
+              </Link>
               
-              <button className="w-full flex items-center justify-between p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 group">
+              <Link
+                href="/app/favorites"
+                className="w-full flex items-center justify-between p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 group"
+              >
                 <div className="flex items-center">
                   <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
                   </svg>
                   <span>Favorites</span>
                 </div>
-                <span className="text-xs bg-gray-200 dark:bg-gray-600 rounded-full px-2 py-1">0</span>
-              </button>
+                <span className="text-xs bg-gray-200 dark:bg-gray-600 rounded-full px-2 py-1">{favoriteNotes.length}</span>
+              </Link>
               
               <div className="pt-4 pb-2">
                 <div className="flex items-center justify-between px-2">
@@ -116,8 +156,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </button>
                 </div>
                 <div className="mt-2 space-y-1">
-                  {/* No tags yet */}
-                  <div className="text-sm text-gray-500 dark:text-gray-400 p-2 italic">No tags yet</div>
+                  {allTags.length > 0 ? (
+                    allTags.map(tag => (
+                      <Link 
+                        key={tag}
+                        href={`/app/notes?tag=${tag}`}
+                        className="flex items-center px-2 py-1 text-sm rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                        <span className="truncate">{tag}</span>
+                      </Link>
+                    ))
+                  ) : (
+                    <div className="text-sm text-gray-500 dark:text-gray-400 p-2 italic">No tags yet</div>
+                  )}
                 </div>
               </div>
 
@@ -131,6 +183,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                   </svg>
                   <span>New Note</span>
+                </Link>
+              </div>
+
+              {/* Import Document Button */}
+              <div className="pt-2">
+                <Link
+                  href="/app/import"
+                  className="w-full flex items-center justify-center p-2 rounded-md bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                  </svg>
+                  <span>Import Document</span>
                 </Link>
               </div>
             </nav>
