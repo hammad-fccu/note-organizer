@@ -2,8 +2,11 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { createWorker } from 'tesseract.js';
 import { Note } from '@/types/note';
 
-// Set the workerSrc property of the pdf.js library
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Set a reliable CDN for PDF.js worker with version hardcoded
+if (typeof window !== 'undefined') {
+  // In browser environments, we need to set the worker path
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+}
 
 export interface ProcessedFile {
   title: string;
@@ -13,10 +16,12 @@ export interface ProcessedFile {
 }
 
 /**
- * Extract text from a PDF file
+ * Extract text from a PDF file using a more reliable method
+ * This serves as a fallback if the primary method fails
  */
-export async function extractTextFromPdf(file: File): Promise<string> {
+async function extractTextFromPdfFallback(file: File): Promise<string> {
   try {
+    console.log('Using fallback PDF extraction...');
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     const maxPages = pdf.numPages;
@@ -24,6 +29,54 @@ export async function extractTextFromPdf(file: File): Promise<string> {
     let extractedText = '';
     
     for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+      try {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent({ normalizeWhitespace: true });
+        
+        // Process text differently to try to capture more content
+        let text = '';
+        let lastY = -1;
+        
+        for (const item of textContent.items) {
+          if ('str' in item) {
+            // Try to detect new lines based on position
+            const currentY = (item as any).transform[5];
+            if (lastY !== -1 && Math.abs(currentY - lastY) > 5) {
+              text += '\n';
+            }
+            text += item.str + ' ';
+            lastY = currentY;
+          }
+        }
+        
+        extractedText += text.trim() + '\n\n';
+      } catch (pageError) {
+        console.error(`Error with fallback extraction on page ${pageNum}:`, pageError);
+      }
+    }
+    
+    return extractedText.trim();
+  } catch (error) {
+    console.error('Fallback extraction failed:', error);
+    return '';
+  }
+}
+
+/**
+ * Extract text from a PDF file
+ */
+export async function extractTextFromPdf(file: File): Promise<string> {
+  try {
+    console.log('Extracting text from PDF...');
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const maxPages = pdf.numPages;
+    console.log(`PDF has ${maxPages} pages`);
+    
+    let extractedText = '';
+    
+    for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+      console.log(`Processing page ${pageNum}`);
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
       const pageText = textContent.items
@@ -33,10 +86,24 @@ export async function extractTextFromPdf(file: File): Promise<string> {
       extractedText += pageText + '\n\n';
     }
     
+    console.log('Text extraction complete');
+    
+    // If we extracted very little text, try the fallback method
+    if (extractedText.trim().length < 50 && maxPages > 0) {
+      console.log('Primary extraction yielded little text, trying fallback method...');
+      const fallbackText = await extractTextFromPdfFallback(file);
+      
+      if (fallbackText.length > extractedText.length) {
+        console.log('Fallback method produced more text, using it instead');
+        return fallbackText;
+      }
+    }
+    
     return extractedText.trim();
   } catch (error) {
-    console.error('Error extracting text from PDF:', error);
-    return '';
+    console.error('Error extracting text from PDF, trying fallback:', error);
+    // If standard extraction fails, try fallback
+    return extractTextFromPdfFallback(file);
   }
 }
 
@@ -72,18 +139,33 @@ export async function performOcr(imageUrl: string): Promise<string> {
  */
 export async function isPdfScanned(file: File): Promise<boolean> {
   try {
+    console.log('Checking if PDF is scanned...');
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    const page = await pdf.getPage(1);
-    const textContent = await page.getTextContent();
     
-    // If there's very little text on the first page, it's likely a scanned document
-    const pageText = textContent.items
-      .map((item: any) => item.str)
-      .join(' ')
-      .trim();
+    // Check the first page (or up to 3 pages if available)
+    const pagesToCheck = Math.min(3, pdf.numPages);
+    let totalTextLength = 0;
     
-    return pageText.length < 100; // Arbitrary threshold
+    for (let pageNum = 1; pageNum <= pagesToCheck; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ')
+        .trim();
+      
+      totalTextLength += pageText.length;
+      console.log(`Page ${pageNum} text length: ${pageText.length}`);
+    }
+    
+    // Calculate average text per page
+    const avgTextPerPage = totalTextLength / pagesToCheck;
+    console.log(`Average text per page: ${avgTextPerPage}`);
+    
+    // More sophisticated check - if very little text on average per page,
+    // it's likely a scanned document
+    return avgTextPerPage < 200; // Threshold increased from 100 to 200
   } catch (error) {
     console.error('Error checking if PDF is scanned:', error);
     return false;
@@ -92,28 +174,46 @@ export async function isPdfScanned(file: File): Promise<boolean> {
 
 /**
  * Process a PDF file, including OCR if needed
- * Note: For demo purposes, we're simplifying the OCR process
  */
 export async function processPdfFile(file: File): Promise<ProcessedFile> {
-  let content = '';
-  const isScanned = await isPdfScanned(file);
+  console.log(`Processing PDF file: ${file.name}`);
   
-  if (isScanned) {
-    // For demo purposes, we'll just extract what text we can
-    // In a real app, you'd render the PDF pages to images and use OCR
-    content = await extractTextFromPdf(file);
-    content += "\n\n[Note: This appears to be a scanned document. In a full implementation, OCR would be applied to extract all text from images.]";
-  } else {
-    // For regular PDFs, extract text directly
-    content = await extractTextFromPdf(file);
+  try {
+    // First try standard text extraction
+    let content = await extractTextFromPdf(file);
+    console.log(`Initial extraction got ${content.length} characters`);
+    
+    // If we got very little text, try to determine if it's a scanned document
+    if (content.length < 100) {
+      console.log("Very little text found, checking if scanned...");
+      const isScanned = await isPdfScanned(file);
+      
+      if (isScanned) {
+        console.log("PDF appears to be scanned");
+        // For now, add a note about this being a scanned document
+        content += "\n\n[Note: This appears to be a scanned document. OCR would be applied in a full implementation to extract text from images.]";
+      } else {
+        console.log("PDF is not scanned but has minimal text");
+        // It's not scanned but still has little text - try extraction again with different settings
+        try {
+          // If this were a real app, we would have alternative extraction methods here
+          content = content || "No text content could be extracted from this PDF. Try converting it to text using an external tool.";
+        } catch (altError) {
+          console.error("Alternative extraction failed:", altError);
+        }
+      }
+    }
+    
+    return {
+      title: file.name.replace(/\.[^/.]+$/, '') || 'Untitled Document',
+      content: content || "Failed to extract content from PDF",
+      sourceFileName: file.name,
+      sourceFileType: file.type,
+    };
+  } catch (error) {
+    console.error("PDF processing failed completely:", error);
+    throw new Error(`Failed to process PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-  
-  return {
-    title: file.name.replace(/\.[^/.]+$/, '') || 'Untitled Document',
-    content,
-    sourceFileName: file.name,
-    sourceFileType: file.type,
-  };
 }
 
 /**
@@ -165,10 +265,23 @@ export function createNoteFromProcessedFile(processedFile: ProcessedFile): Omit<
  * Auto-generate tags from content
  */
 function generateTagsFromContent(content: string): string[] {
-  // This is a very simple implementation
+  console.log("Generating tags from content");
+  // If content is very short, don't try to generate tags
+  if (!content || content.length < 50) {
+    console.log("Content too short for tag generation");
+    return ["untagged"];
+  }
+  
+  // This is a simple implementation
   // In a real app, you would use NLP or machine learning for more intelligent tagging
   const words = content.toLowerCase().split(/\s+/);
-  const commonWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'of', 'from']);
+  const commonWords = new Set([
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 
+    'for', 'with', 'by', 'of', 'from', 'this', 'that', 'these', 
+    'those', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 
+    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 
+    'shall', 'should', 'can', 'could', 'may', 'might'
+  ]);
   
   // Count word frequency and filter out common words and short words
   const wordCounts: Record<string, number> = {};
@@ -185,5 +298,14 @@ function generateTagsFromContent(content: string): string[] {
     .map(([word]) => word)
     .slice(0, 5); // Take top 5 words as tags
   
-  return [...new Set(sortedWords)]; // Deduplicate
+  const tags = [...new Set(sortedWords)]; // Deduplicate
+  
+  console.log(`Generated ${tags.length} tags:`, tags);
+  
+  // If no tags could be generated, add a default tag
+  if (tags.length === 0) {
+    return ["untagged"];
+  }
+  
+  return tags;
 } 

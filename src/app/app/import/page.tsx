@@ -28,14 +28,23 @@ export default function ImportPage() {
         setCurrentFile(file.name);
         setProgress(Math.round(((i) / files.length) * 100));
         
-        // Process the file
-        const processedFile = await processFile(file);
-        setProcessedFiles(prev => [...prev, processedFile]);
+        console.log(`Processing file: ${file.name}, type: ${file.type}`);
+        
+        try {
+          // Process the file
+          const processedFile = await processFile(file);
+          console.log(`File processed: ${processedFile.title}, content length: ${processedFile.content.length}`);
+          setProcessedFiles(prev => [...prev, processedFile]);
+        } catch (fileErr) {
+          console.error(`Error processing file ${file.name}:`, fileErr);
+          setError(fileErr instanceof Error ? `Error processing ${file.name}: ${fileErr.message}` : `Unknown error processing ${file.name}`);
+        }
       }
       
       setProgress(100);
       setCurrentFile(null);
     } catch (err) {
+      console.error('File processing error:', err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred while processing files');
     } finally {
       setIsProcessing(false);
@@ -92,12 +101,24 @@ export default function ImportPage() {
                   style={{ width: `${progress}%` }}
                 ></div>
               </div>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                This might take a moment for large files or scanned PDFs
+              </p>
             </div>
           )}
           
           {error && (
             <div className="mt-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-200 rounded-md text-sm">
-              {error}
+              <p className="font-medium">Error processing files:</p>
+              <p>{error}</p>
+              <div className="mt-2">
+                <p className="text-xs">Tips:</p>
+                <ul className="list-disc list-inside text-xs mt-1">
+                  <li>Make sure your PDF is not password-protected</li>
+                  <li>Try using a different PDF file</li>
+                  <li>If you're using a scanned PDF, text extraction may be limited</li>
+                </ul>
+              </div>
             </div>
           )}
         </div>
