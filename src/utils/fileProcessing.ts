@@ -114,8 +114,13 @@ export async function extractTextFromPdf(file: File): Promise<string> {
  */
 export async function performOcr(imageUrl: string): Promise<string> {
   try {
+    console.log('Starting OCR process...');
+    
+    // Completely ignore type checking for Tesseract.js
+    // @ts-ignore
     const worker = await createWorker();
-    // @ts-ignore - Tesseract typings are not up-to-date
+    
+    // @ts-ignore
     await worker.load();
     // @ts-ignore
     await worker.loadLanguage('eng');
@@ -127,9 +132,37 @@ export async function performOcr(imageUrl: string): Promise<string> {
     // @ts-ignore
     await worker.terminate();
     
+    console.log('OCR completed successfully');
     return data.text;
   } catch (error) {
     console.error('OCR error:', error);
+    return '';
+  }
+}
+
+/**
+ * Convert PDF page to an image for OCR processing
+ */
+async function pdfPageToImage(page: any): Promise<string> {
+  try {
+    // Set scale for better OCR results
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+    
+    // Render PDF page to canvas
+    await page.render({
+      canvasContext: context,
+      viewport: viewport
+    }).promise;
+    
+    // Convert canvas to image data URL
+    return canvas.toDataURL('image/png');
+  } catch (error) {
+    console.error('Error converting PDF page to image:', error);
     return '';
   }
 }
@@ -198,8 +231,42 @@ export async function processPdfFile(file: File): Promise<ProcessedFile> {
         const isScanned = await isPdfScanned(file);
         
         if (isScanned) {
-          console.log("PDF appears to be scanned");
-          content = content || "This appears to be a scanned document. The Smart Note Organizer can't currently extract text from images. In a full implementation, OCR would be applied to extract text from images.";
+          console.log("PDF appears to be scanned, attempting OCR...");
+          
+          try {
+            // Try OCR on the first page
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            
+            // For demo purposes, only process the first page with OCR
+            // In a production app, you'd process more pages
+            if (pdf.numPages > 0) {
+              const page = await pdf.getPage(1);
+              const imageUrl = await pdfPageToImage(page);
+              
+              if (imageUrl) {
+                console.log("Converted PDF page to image, running OCR...");
+                const ocrText = await performOcr(imageUrl);
+                
+                if (ocrText && ocrText.length > 0) {
+                  console.log(`OCR successful: ${ocrText.length} characters`);
+                  content = ocrText;
+                  
+                  // Add note about OCR
+                  content += "\n\n[Note: This text was extracted using OCR from a scanned document. Some inaccuracies may be present.]";
+                } else {
+                  content = "OCR processing failed. This appears to be a scanned document, but text extraction was unsuccessful. Try a clearer scan or manually type the content.";
+                }
+              } else {
+                content = "Failed to convert PDF to image for OCR processing. This appears to be a scanned document.";
+              }
+            } else {
+              content = "The PDF appears to be empty or could not be processed.";
+            }
+          } catch (ocrError) {
+            console.error("OCR processing error:", ocrError);
+            content = "This appears to be a scanned document. OCR processing failed. Try a different document or manually type the content.";
+          }
         } else {
           console.log("PDF is not scanned but text extraction failed");
           content = content || "No text could be extracted from this PDF. The document might be using non-standard fonts, contain only images, or be protected. You can manually type the content or try converting it to text using an external tool.";

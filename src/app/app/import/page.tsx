@@ -103,6 +103,9 @@ export default function ImportPage() {
               </div>
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                 This might take a moment for large PDFs. Text extraction quality depends on the PDF structure.
+                {currentFile?.toLowerCase().endsWith('.pdf') && (
+                  <span> If the PDF contains scanned pages, OCR will be attempted to extract text from images.</span>
+                )}
               </p>
             </div>
           )}
@@ -127,6 +130,8 @@ export default function ImportPage() {
             <p className="font-medium">PDF Import Tips:</p>
             <ul className="list-disc list-inside text-xs mt-1">
               <li>Text-based PDFs work best (not scanned documents)</li>
+              <li>For scanned documents, OCR will attempt to extract text</li>
+              <li>OCR works best with clear, well-scanned documents</li>
               <li>Complex formatting may be lost during import</li>
               <li>You can edit the extracted text after import</li>
               <li>The app will attempt to generate relevant tags automatically</li>
