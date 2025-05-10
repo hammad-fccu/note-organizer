@@ -26,11 +26,16 @@ export default function ThemeToggle() {
     }
   }, [darkMode]);
 
+  // Handle toggle click
+  const toggleDarkMode = () => {
+    setDarkMode(prevMode => !prevMode);
+  };
+
   if (darkMode === undefined) return null; // Avoid flash during hydration
 
   return (
     <button
-      onClick={() => setDarkMode(!darkMode)}
+      onClick={toggleDarkMode}
       className="p-2 rounded-full bg-gray-200 dark:bg-gray-800 transition-colors"
       aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
     >

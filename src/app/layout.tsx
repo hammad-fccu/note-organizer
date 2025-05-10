@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,6 +26,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <Script id="theme-script" strategy="beforeInteractive">
+        {`
+          try {
+            let isDarkMode = localStorage.getItem('darkMode') === 'true' || 
+                (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            if (isDarkMode) {
+              document.documentElement.classList.add('dark');
+            } else {
+              document.documentElement.classList.remove('dark');
+            }
+          } catch(e) {
+            console.error('Error accessing localStorage:', e);
+          }
+        `}
+      </Script>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

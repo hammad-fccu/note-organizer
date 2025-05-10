@@ -1,6 +1,5 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { openDB } from 'idb';
 import { User } from 'next-auth';
 
 // Extend the User type to include id
@@ -8,37 +7,26 @@ interface ExtendedUser extends User {
   id: string;
 }
 
-// Initialize IndexedDB for user storage
-async function initUserDB() {
-  const db = await openDB('note-organizer-auth', 1, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains('users')) {
-        const userStore = db.createObjectStore('users', { keyPath: 'email' });
-        userStore.createIndex('email', 'email', { unique: true });
-      }
-    },
-  });
-  return db;
-}
+// Simple in-memory user store (for demo purposes only)
+// In a real app, this would be a database
+const users: Record<string, { email: string; password: string; name: string; createdAt: string }> = {};
 
 // Mock user creation - in production this would have proper security
 async function createUser(email: string, password: string) {
-  const db = await initUserDB();
   // Very basic password handling - NOT PRODUCTION READY
   // In a real app, you would use proper password hashing
-  await db.put('users', { 
+  users[email] = { 
     email, 
     password, // In a real app, this would be hashed!
     name: email.split('@')[0],
     createdAt: new Date().toISOString()
-  });
+  };
   return { email };
 }
 
-// Find user in IndexedDB
+// Find user
 async function findUser(email: string) {
-  const db = await initUserDB();
-  return db.get('users', email);
+  return users[email];
 }
 
 const handler = NextAuth({
@@ -54,7 +42,7 @@ const handler = NextAuth({
           return null;
         }
 
-        // Find user in IndexedDB
+        // Find user
         const user = await findUser(credentials.email);
         
         // Check if user exists and password matches
@@ -99,4 +87,4 @@ const handler = NextAuth({
 export { handler as GET, handler as POST };
 
 // Export user creation function for signup
-export { createUser }; 
+export { createUser, findUser }; 

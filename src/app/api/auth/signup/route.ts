@@ -1,25 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createUser } from '../[...nextauth]/route';
-import { openDB } from 'idb';
-
-// Initialize IndexedDB for user storage
-async function initUserDB() {
-  const db = await openDB('note-organizer-auth', 1, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains('users')) {
-        const userStore = db.createObjectStore('users', { keyPath: 'email' });
-        userStore.createIndex('email', 'email', { unique: true });
-      }
-    },
-  });
-  return db;
-}
-
-// Find user in IndexedDB
-async function findUser(email: string) {
-  const db = await initUserDB();
-  return db.get('users', email);
-}
+import { createUser, findUser } from '../[...nextauth]/route';
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,7 +20,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User with this email already exists' }, { status: 409 });
     }
 
-    // Create user in IndexedDB
+    // Create user
     await createUser(email, password);
 
     return NextResponse.json({ success: true, message: 'User created successfully' });
