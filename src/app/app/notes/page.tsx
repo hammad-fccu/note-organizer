@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useNotes } from '@/store/NoteStore';
 
 export default function NotesPage() {
-  const { notes, deleteNote, favoriteNote } = useNotes();
+  const { notes, folders, deleteNote, favoriteNote } = useNotes();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'date' | 'title'>('date');
@@ -114,7 +114,10 @@ export default function NotesPage() {
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-medium truncate pr-4">{note.title}</h3>
                   <button
-                    onClick={() => handleToggleFavorite(note.id, note.favorite)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleFavorite(note.id, note.favorite);
+                    }}
                     className={`text-gray-400 hover:text-yellow-500 ${note.favorite ? 'text-yellow-500' : ''}`}
                   >
                     <svg className="w-5 h-5" fill={note.favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -132,7 +135,10 @@ export default function NotesPage() {
                       <span 
                         key={tag} 
                         className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
-                        onClick={() => setSelectedTag(tag)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTag(tag);
+                        }}
                       >
                         {tag}
                       </span>
@@ -143,18 +149,29 @@ export default function NotesPage() {
                 <div className="flex justify-between items-center">
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     Last edited: {new Date(note.updatedAt).toLocaleDateString()}
+                    {note.folderId && (
+                      <span className="ml-2 px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">
+                        In folder
+                      </span>
+                    )}
                   </div>
                   <div className="flex space-x-2">
                     <Link
                       href={`/app/notes/${note.id}`}
-                      className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                      className="text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400"
+                      title="Edit note (includes folder management)"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                       </svg>
                     </Link>
+                    
                     <button
-                      onClick={() => handleDelete(note.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(note.id);
+                      }}
                       className="text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

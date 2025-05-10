@@ -9,9 +9,19 @@ export interface Note {
   sourceFileType?: string;
   createdAt: string;
   updatedAt: string;
+  folderId?: string;
   summary?: {
     text: string;
     type: 'brief' | 'detailed' | 'bullets';
     createdAt: string;
   };
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  parentId?: string;
+  color?: string;
 } 

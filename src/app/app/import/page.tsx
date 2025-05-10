@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import FileUploader from '@/components/FileUploader';
 import { processFile, createNoteFromProcessedFile, ProcessedFile } from '@/utils/fileProcessing';
 import { useNotes } from '@/store/NoteStore';
+import Link from 'next/link';
 
 export default function ImportPage() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -12,8 +13,24 @@ export default function ImportPage() {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [processedFiles, setProcessedFiles] = useState<ProcessedFile[]>([]);
+  const [folderId, setFolderId] = useState<string | null>(null);
+  const [folderName, setFolderName] = useState<string>('');
+  
   const router = useRouter();
-  const { addNote } = useNotes();
+  const searchParams = useSearchParams();
+  const { addNote, getFolderById, folders } = useNotes();
+
+  // Get folderId from query params if available
+  useEffect(() => {
+    const queryFolderId = searchParams.get('folderId');
+    if (queryFolderId) {
+      setFolderId(queryFolderId);
+      const folder = getFolderById(queryFolderId);
+      if (folder) {
+        setFolderName(folder.name);
+      }
+    }
+  }, [searchParams, getFolderById]);
 
   const handleFilesAccepted = async (files: File[]) => {
     if (files.length === 0) return;
@@ -55,11 +72,19 @@ export default function ImportPage() {
     // Import all processed files as notes
     processedFiles.forEach(processedFile => {
       const noteData = createNoteFromProcessedFile(processedFile);
+      // Add folderId if we're in a folder context
+      if (folderId) {
+        noteData.folderId = folderId;
+      }
       addNote(noteData);
     });
     
-    // Navigate to notes page
-    router.push('/app/notes');
+    // Navigate back to the appropriate page
+    if (folderId) {
+      router.push(`/app/folders/${folderId}`);
+    } else {
+      router.push('/app/notes');
+    }
   };
   
   const handleCancel = () => {
@@ -75,7 +100,19 @@ export default function ImportPage() {
         <h1 className="text-2xl font-bold mb-2">Import Documents</h1>
         <p className="text-gray-600 dark:text-gray-400">
           Upload PDF, text, or markdown files to import them as notes
+          {folderName && <span> in folder <strong>{folderName}</strong></span>}
         </p>
+        {folderId && (
+          <Link 
+            href={`/app/folders/${folderId}`}
+            className="inline-flex items-center text-blue-600 hover:underline mt-2"
+          >
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Back to folder
+          </Link>
+        )}
       </div>
       
       {processedFiles.length === 0 ? (
@@ -141,7 +178,14 @@ export default function ImportPage() {
       ) : (
         <div className="space-y-6">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-lg font-medium mb-4">Processed Files ({processedFiles.length})</h2>
+            <h2 className="text-lg font-medium mb-4">
+              Processed Files ({processedFiles.length})
+              {folderId && folderName && (
+                <span className="text-sm font-normal ml-2 text-gray-500">
+                  Will be imported to folder: {folderName}
+                </span>
+              )}
+            </h2>
             
             <div className="space-y-4">
               {processedFiles.map((file, index) => (

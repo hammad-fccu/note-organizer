@@ -8,6 +8,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { signOut } from 'next-auth/react';
 import { useNotes } from '@/store/NoteStore';
 import { usePathname } from 'next/navigation';
+import FolderList from '@/components/FolderList';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -145,6 +146,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </div>
                 <span className="text-xs bg-gray-200 dark:bg-gray-600 rounded-full px-2 py-1">{favoriteNotes.length}</span>
               </Link>
+              
+              {/* Folders Section */}
+              <FolderList />
               
               <div className="pt-4 pb-2">
                 <div className="flex items-center justify-between px-2">

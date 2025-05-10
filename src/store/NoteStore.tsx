@@ -1,10 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Note } from '@/types/note';
+import { Note, Folder } from '@/types/note';
 import { SummaryType } from '@/utils/aiSummary';
 
 interface NoteContextType {
   notes: Note[];
+  folders: Folder[];
   addNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => Note;
   updateNote: (id: string, updates: Partial<Note>) => void;
   deleteNote: (id: string) => void;
@@ -16,6 +17,14 @@ interface NoteContextType {
   getFavorites: () => Note[];
   getAllTags: () => string[];
   addSummaryToNote: (id: string, summary: string, type: SummaryType) => void;
+  
+  // Folder management
+  addFolder: (name: string, parentId?: string, color?: string) => Folder;
+  updateFolder: (id: string, updates: Partial<Folder>) => void;
+  deleteFolder: (id: string) => void;
+  getFolderById: (id: string) => Folder | undefined;
+  getNotesInFolder: (folderId: string) => Note[];
+  moveNoteToFolder: (noteId: string, folderId: string | null) => void;
 }
 
 const NoteContext = createContext<NoteContextType | undefined>(undefined);
@@ -34,10 +43,13 @@ interface NoteProviderProps {
 
 export function NoteProvider({ children }: NoteProviderProps) {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
   
-  // Load notes from localStorage on mount
+  // Load notes and folders from localStorage on mount
   useEffect(() => {
     const savedNotes = localStorage.getItem('notes');
+    const savedFolders = localStorage.getItem('folders');
+    
     if (savedNotes) {
       try {
         setNotes(JSON.parse(savedNotes));
@@ -45,13 +57,26 @@ export function NoteProvider({ children }: NoteProviderProps) {
         console.error('Failed to parse saved notes', e);
       }
     }
+    
+    if (savedFolders) {
+      try {
+        setFolders(JSON.parse(savedFolders));
+      } catch (e) {
+        console.error('Failed to parse saved folders', e);
+      }
+    }
   }, []);
   
-  // Save notes to localStorage whenever they change
+  // Save notes and folders to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('notes', JSON.stringify(notes));
   }, [notes]);
   
+  useEffect(() => {
+    localStorage.setItem('folders', JSON.stringify(folders));
+  }, [folders]);
+  
+  // Note management functions
   const addNote = (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
     const timestamp = new Date().toISOString();
     const newNote: Note = {
@@ -129,8 +154,61 @@ export function NoteProvider({ children }: NoteProviderProps) {
     });
   };
   
+  // Folder management functions
+  const addFolder = (name: string, parentId?: string, color?: string) => {
+    const timestamp = new Date().toISOString();
+    const newFolder: Folder = {
+      id: uuidv4(),
+      name,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      parentId,
+      color
+    };
+    
+    setFolders(prevFolders => [...prevFolders, newFolder]);
+    return newFolder;
+  };
+  
+  const updateFolder = (id: string, updates: Partial<Folder>) => {
+    setFolders(prevFolders => 
+      prevFolders.map(folder => 
+        folder.id === id 
+          ? { ...folder, ...updates, updatedAt: new Date().toISOString() } 
+          : folder
+      )
+    );
+  };
+  
+  const deleteFolder = (id: string) => {
+    // When deleting a folder, remove all notes from that folder
+    setNotes(prevNotes => 
+      prevNotes.map(note => 
+        note.folderId === id
+          ? { ...note, folderId: undefined, updatedAt: new Date().toISOString() }
+          : note
+      )
+    );
+    
+    // Delete the folder itself
+    setFolders(prevFolders => prevFolders.filter(folder => folder.id !== id));
+  };
+  
+  const getFolderById = (id: string) => {
+    return folders.find(folder => folder.id === id);
+  };
+  
+  const getNotesInFolder = (folderId: string) => {
+    return notes.filter(note => note.folderId === folderId);
+  };
+  
+  const moveNoteToFolder = (noteId: string, folderId: string | null) => {
+    updateNote(noteId, { folderId: folderId || undefined });
+  };
+  
   const value = {
     notes,
+    folders,
     addNote,
     updateNote,
     deleteNote,
@@ -142,6 +220,12 @@ export function NoteProvider({ children }: NoteProviderProps) {
     getFavorites,
     getAllTags,
     addSummaryToNote,
+    addFolder,
+    updateFolder,
+    deleteFolder,
+    getFolderById,
+    getNotesInFolder,
+    moveNoteToFolder,
   };
   
   return <NoteContext.Provider value={value}>{children}</NoteContext.Provider>;

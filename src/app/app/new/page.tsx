@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useNotes } from '@/store/NoteStore';
 
 export default function NewNotePage() {
@@ -9,7 +9,15 @@ export default function NewNotePage() {
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('');
   const router = useRouter();
-  const { addNote } = useNotes();
+  const searchParams = useSearchParams();
+  const { addNote, getFolderById } = useNotes();
+  
+  // Get folder ID from query parameters (if any)
+  const folderId = searchParams.get('folderId');
+  
+  // Get folder name for better UX
+  const folder = folderId ? getFolderById(folderId) : null;
+  const folderName = folder?.name || '';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,12 +29,17 @@ export default function NewNotePage() {
       contentHtml: content.replace(/\n/g, '<br>'),
       tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
       favorite: false,
+      folderId: folderId || undefined,
     };
     
     addNote(noteData);
     
-    // Navigate to notes page
-    router.push('/app/notes');
+    // Navigate to the appropriate page
+    if (folderId) {
+      router.push(`/app/folders/${folderId}`);
+    } else {
+      router.push('/app/notes');
+    }
   };
 
   return (
@@ -34,7 +47,9 @@ export default function NewNotePage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-2">Create New Note</h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Write your note content and add relevant tags
+          {folder 
+            ? `Adding note to folder: ${folderName}`
+            : 'Write your note content and add relevant tags'}
         </p>
       </div>
       
@@ -96,7 +111,7 @@ export default function NewNotePage() {
             
             <button
               type="button"
-              onClick={() => router.push('/app/notes')}
+              onClick={() => folderId ? router.push(`/app/folders/${folderId}`) : router.push('/app/notes')}
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               Cancel

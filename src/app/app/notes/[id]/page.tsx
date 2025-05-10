@@ -17,7 +17,7 @@ interface NotePageProps {
 export default function NotePage({ params }: NotePageProps) {
   const { id } = params;
   const router = useRouter();
-  const { getNoteById, updateNote, deleteNote, favoriteNote, addSummaryToNote } = useNotes();
+  const { getNoteById, updateNote, deleteNote, favoriteNote, addSummaryToNote, folders, moveNoteToFolder } = useNotes();
   
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState('');
@@ -25,6 +25,7 @@ export default function NotePage({ params }: NotePageProps) {
   const [tags, setTags] = useState('');
   const [isFavorite, setIsFavorite] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [folderId, setFolderId] = useState<string | undefined>(undefined);
   const [summary, setSummary] = useState<{
     text: string;
     type: SummaryType;
@@ -40,6 +41,7 @@ export default function NotePage({ params }: NotePageProps) {
       setTags(note.tags.join(', '));
       setIsFavorite(note.favorite);
       setSummary(note.summary);
+      setFolderId(note.folderId);
     } else {
       setNotFound(true);
     }
@@ -52,6 +54,10 @@ export default function NotePage({ params }: NotePageProps) {
       contentHtml: content.replace(/\n/g, '<br>'),
       tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
     });
+    
+    // Handle folder change separately if changed
+    moveNoteToFolder(id, folderId || null);
+    
     setIsEditing(false);
   };
   
@@ -77,6 +83,9 @@ export default function NotePage({ params }: NotePageProps) {
     setSummary(newSummary);
   };
 
+  // Get current folder name
+  const currentFolder = folderId ? folders.find(f => f.id === folderId) : null;
+
   // Render note content tab
   const renderNoteContent = () => (
     <div>
@@ -101,6 +110,20 @@ export default function NotePage({ params }: NotePageProps) {
                 {tag.trim()}
               </span>
             ))}
+          </div>
+        </div>
+      )}
+      
+      {currentFolder && (
+        <div className="mb-4">
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Folder:</h3>
+          <div className="flex items-center">
+            <svg className="w-4 h-4 mr-1 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+            </svg>
+            <Link href={`/app/folders/${folderId}`} className="text-blue-600 dark:text-blue-400 hover:underline">
+              {currentFolder.name}
+            </Link>
           </div>
         </div>
       )}
@@ -246,6 +269,27 @@ export default function NotePage({ params }: NotePageProps) {
                 placeholder="e.g. research, science, biology"
                 className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
               />
+            </div>
+            
+            <div className="mb-4">
+              <label htmlFor="folder" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Folder
+              </label>
+              <div className="flex items-center">
+                <select
+                  id="folder"
+                  value={folderId || ''}
+                  onChange={(e) => setFolderId(e.target.value || undefined)}
+                  className="flex-1 p-2 border rounded-lg bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">None (All Notes)</option>
+                  {folders.map(folder => (
+                    <option key={folder.id} value={folder.id}>
+                      {folder.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             
             <div className="flex space-x-3 mt-6">
