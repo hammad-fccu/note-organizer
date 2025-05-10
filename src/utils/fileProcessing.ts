@@ -2,10 +2,10 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { createWorker } from 'tesseract.js';
 import { Note } from '@/types/note';
 
-// Set a reliable CDN for PDF.js worker with version hardcoded
+// Set the worker source for PDF.js
 if (typeof window !== 'undefined') {
-  // In browser environments, we need to set the worker path
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+  // Use the worker file from the public directory
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.js';
 }
 
 export interface ProcessedFile {
@@ -31,7 +31,7 @@ async function extractTextFromPdfFallback(file: File): Promise<string> {
     for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
       try {
         const page = await pdf.getPage(pageNum);
-        const textContent = await page.getTextContent({ normalizeWhitespace: true });
+        const textContent = await page.getTextContent();
         
         // Process text differently to try to capture more content
         let text = '';
@@ -184,22 +184,25 @@ export async function processPdfFile(file: File): Promise<ProcessedFile> {
     console.log(`Initial extraction got ${content.length} characters`);
     
     // If we got very little text, try to determine if it's a scanned document
-    if (content.length < 100) {
-      console.log("Very little text found, checking if scanned...");
-      const isScanned = await isPdfScanned(file);
+    if (!content || content.length < 100) {
+      console.log("Very little text found, trying fallback extraction...");
       
-      if (isScanned) {
-        console.log("PDF appears to be scanned");
-        // For now, add a note about this being a scanned document
-        content += "\n\n[Note: This appears to be a scanned document. OCR would be applied in a full implementation to extract text from images.]";
+      // Try the fallback method directly without checking if scanned
+      const fallbackText = await extractTextFromPdfFallback(file);
+      if (fallbackText && fallbackText.length > 0) {
+        console.log(`Fallback extraction successful: ${fallbackText.length} characters`);
+        content = fallbackText;
       } else {
-        console.log("PDF is not scanned but has minimal text");
-        // It's not scanned but still has little text - try extraction again with different settings
-        try {
-          // If this were a real app, we would have alternative extraction methods here
-          content = content || "No text content could be extracted from this PDF. Try converting it to text using an external tool.";
-        } catch (altError) {
-          console.error("Alternative extraction failed:", altError);
+        // If both methods failed, check if it's a scanned document
+        console.log("Fallback extraction also failed, checking if scanned...");
+        const isScanned = await isPdfScanned(file);
+        
+        if (isScanned) {
+          console.log("PDF appears to be scanned");
+          content = content || "This appears to be a scanned document. The Smart Note Organizer can't currently extract text from images. In a full implementation, OCR would be applied to extract text from images.";
+        } else {
+          console.log("PDF is not scanned but text extraction failed");
+          content = content || "No text could be extracted from this PDF. The document might be using non-standard fonts, contain only images, or be protected. You can manually type the content or try converting it to text using an external tool.";
         }
       }
     }

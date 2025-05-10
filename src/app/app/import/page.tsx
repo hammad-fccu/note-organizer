@@ -102,7 +102,7 @@ export default function ImportPage() {
                 ></div>
               </div>
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                This might take a moment for large files or scanned PDFs
+                This might take a moment for large PDFs. Text extraction quality depends on the PDF structure.
               </p>
             </div>
           )}
@@ -112,15 +112,26 @@ export default function ImportPage() {
               <p className="font-medium">Error processing files:</p>
               <p>{error}</p>
               <div className="mt-2">
-                <p className="text-xs">Tips:</p>
+                <p className="text-xs font-medium">Tips:</p>
                 <ul className="list-disc list-inside text-xs mt-1">
                   <li>Make sure your PDF is not password-protected</li>
                   <li>Try using a different PDF file</li>
                   <li>If you're using a scanned PDF, text extraction may be limited</li>
+                  <li>PDFs with complex formatting or images may not extract well</li>
                 </ul>
               </div>
             </div>
           )}
+          
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-200 rounded-md text-sm">
+            <p className="font-medium">PDF Import Tips:</p>
+            <ul className="list-disc list-inside text-xs mt-1">
+              <li>Text-based PDFs work best (not scanned documents)</li>
+              <li>Complex formatting may be lost during import</li>
+              <li>You can edit the extracted text after import</li>
+              <li>The app will attempt to generate relevant tags automatically</li>
+            </ul>
+          </div>
         </div>
       ) : (
         <div className="space-y-6">
