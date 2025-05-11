@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Flashcard } from '@/types/flashcards';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 interface FlashcardTableProps {
   flashcards: Flashcard[];
@@ -13,6 +14,8 @@ export default function FlashcardTable({ flashcards, onFlashcardsUpdated }: Flas
     back: '',
     tags: ''
   });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [cardToDelete, setCardToDelete] = useState<string | null>(null);
   
   const handleEdit = (flashcard: Flashcard) => {
     setEditingId(flashcard.id);
@@ -41,8 +44,17 @@ export default function FlashcardTable({ flashcards, onFlashcardsUpdated }: Flas
   };
   
   const handleDelete = (id: string) => {
-    const updatedFlashcards = flashcards.filter(card => card.id !== id);
-    onFlashcardsUpdated(updatedFlashcards);
+    setCardToDelete(id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (cardToDelete) {
+      const updatedFlashcards = flashcards.filter(card => card.id !== cardToDelete);
+      onFlashcardsUpdated(updatedFlashcards);
+      setShowDeleteModal(false);
+      setCardToDelete(null);
+    }
   };
   
   const handleMoveUp = (index: number) => {
@@ -185,6 +197,17 @@ export default function FlashcardTable({ flashcards, onFlashcardsUpdated }: Flas
           </tbody>
         </table>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Flashcard"
+        message="Are you sure you want to delete this flashcard? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 } 
