@@ -46,9 +46,9 @@ export default function Home() {
       
       <main>
         {/* Hero Section */}
-        <section className="py-20 px-4 bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <section className="py-20 px-4 bg-white dark:bg-gray-900">
           <div className="max-w-6xl mx-auto text-center">
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 pb-1">
               Organize your notes with AI
             </h2>
             <p className="text-xl max-w-2xl mx-auto mb-8 text-gray-600 dark:text-gray-300">
@@ -205,7 +205,7 @@ export default function Home() {
         </section>
         
         {/* Final CTA Section */}
-        <section className="py-16 px-4 bg-gradient-to-b from-blue-600 to-purple-700 text-white">
+        <section className="py-16 px-4 bg-gradient-to-r from-blue-400 to-purple-400 text-white dark:bg-gradient-to-r dark:from-blue-600 dark:to-purple-600">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl font-bold mb-6">Ready to transform how you organize your notes?</h2>
             <p className="text-xl mb-8 opacity-90">Join thousands of students and researchers who've improved their productivity.</p>
