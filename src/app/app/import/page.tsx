@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import FileUploader from '@/components/FileUploader';
-import { processFile, ProcessedFile } from '@/utils/fileProcessing';
+import { processFile, ProcessedFile, createNoteFromProcessedFile } from '@/utils/fileProcessing';
 import { useNotes } from '@/store/NoteStore';
 import Link from 'next/link';
 import { generateTags } from '@/utils/aiSummary';
+import InfoModal from '@/components/InfoModal';
 
 // Add a function to normalize and deduplicate tags (reusing the same function pattern from other pages)
 const normalizeTags = (tags: string[]): string[] => {
@@ -40,6 +41,8 @@ export default function ImportPage() {
   const [isGeneratingTags, setIsGeneratingTags] = useState(false);
   const [generatingTagsForFile, setGeneratingTagsForFile] = useState<string | null>(null);
   const [tagsProgress, setTagsProgress] = useState(0);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [infoModalContent, setInfoModalContent] = useState({ title: '', message: '' });
   
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -207,6 +210,37 @@ export default function ImportPage() {
     setError(null);
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsProcessing(true);
+    try {
+      const apiKey = localStorage.getItem('openRouterApiKey') || '';
+      if (!apiKey) {
+        setInfoModalContent({
+          title: 'API Key Required',
+          message: 'Please add an OpenRouter API key in settings to use file import. You can add your API key in the Settings page.'
+        });
+        setShowInfoModal(true);
+        return;
+      }
+
+      const processedFile = await processFile(file);
+      const note = await createNoteFromProcessedFile(processedFile);
+      addNote(note);
+      router.push('/app/notes');
+    } catch (error) {
+      setInfoModalContent({
+        title: 'Import Failed',
+        message: 'Failed to process the file. Please make sure it\'s a valid text file and try again.'
+      });
+      setShowInfoModal(true);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -351,6 +385,14 @@ export default function ImportPage() {
           </div>
         </div>
       )}
+
+      {/* Info Modal */}
+      <InfoModal
+        isOpen={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+        title={infoModalContent.title}
+        message={infoModalContent.message}
+      />
     </div>
   );
 } 
