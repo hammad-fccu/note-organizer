@@ -34,15 +34,7 @@ export default function NoteSummary({ noteContent, onSummarize, existingSummary 
   const handleSummarize = async () => {
     const apiKey = getApiKey();
     
-    if (!apiKey) {
-      setInfoModalContent({
-        title: 'API Key Required',
-        message: 'Please add an OpenRouter API key in settings to use summary generation. You can add your API key in the Settings page.'
-      });
-      setShowInfoModal(true);
-      return;
-    }
-    
+    // No need to check for API key - the generateSummary function now handles that
     setIsGenerating(true);
     setError(null);
     

@@ -216,16 +216,7 @@ export default function ImportPage() {
 
     setIsProcessing(true);
     try {
-      const apiKey = localStorage.getItem('openRouterApiKey') || '';
-      if (!apiKey) {
-        setInfoModalContent({
-          title: 'API Key Required',
-          message: 'Please add an OpenRouter API key in settings to use file import. You can add your API key in the Settings page.'
-        });
-        setShowInfoModal(true);
-        return;
-      }
-
+      // No need to check for API key - the functions now handle that automatically
       const processedFile = await processFile(file);
       const note = await createNoteFromProcessedFile(processedFile);
       addNote(note);

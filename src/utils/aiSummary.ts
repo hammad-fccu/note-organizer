@@ -78,10 +78,6 @@ function getSummaryPrompt(text: string, type: SummaryType): string {
 
 // Function to generate a summary using OpenRouter API
 export async function generateSummary({ text, type, model, apiKey }: SummaryOptions): Promise<string> {
-  if (!apiKey) {
-    throw new Error('API key is required');
-  }
-  
   // Truncate text if it's too long
   const maxTextLength = 10000;
   const truncatedText = text.length > maxTextLength 
@@ -92,6 +88,14 @@ export async function generateSummary({ text, type, model, apiKey }: SummaryOpti
   const prompt = getSummaryPrompt(truncatedText, type);
   
   try {
+    // If no API key, use Gemini directly
+    if (!apiKey) {
+      console.log("No OpenRouter API key found, using Gemini API directly for summary");
+      const summaryText = await callGeminiApi(prompt);
+      console.log("Successfully retrieved summary from Gemini API");
+      return summaryText.trim();
+    }
+    
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -181,11 +185,6 @@ export async function generateTags({ text, title, model, apiKey }: TagGeneration
     model: model || 'default', 
     hasApiKey: !!apiKey 
   });
-
-  if (!apiKey) {
-    console.error('API key is required but none provided');
-    return []; // Return empty array instead of throwing error
-  }
   
   if (!text || text.trim().length === 0) {
     console.error('Text content is empty or undefined');
@@ -201,6 +200,25 @@ export async function generateTags({ text, title, model, apiKey }: TagGeneration
   // Create the prompt for tag generation
   const safeTitle = title || 'Untitled';
   const prompt = `Please analyze the following note titled "${safeTitle}" and generate 3-7 relevant tags or keywords that best categorize this content. Tags should be single words or short phrases (max 2-3 words) that capture the main topics, concepts, and themes. Return only the tags separated by commas without any other text or explanation.\n\nNote content:\n${truncatedText}`;
+  
+  // If no API key, use Gemini directly
+  if (!apiKey) {
+    console.log("No OpenRouter API key found, using Gemini API directly for tag generation");
+    try {
+      const tagsText = await callGeminiApi(prompt);
+      console.log("Successfully retrieved tags from Gemini API");
+      
+      // Process the response to extract clean tags
+      const tags = tagsText.split(',')
+        .map(tag => (tag || '').trim())
+        .filter(tag => tag !== '');
+      
+      return normalizeTags(tags);
+    } catch (geminiError) {
+      console.error("Gemini API failed:", geminiError);
+      return []; // Return empty array
+    }
+  }
   
   console.log(`Sending request to OpenRouter API with model: ${model}`);
   

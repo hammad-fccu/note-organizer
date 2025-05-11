@@ -98,11 +98,6 @@ export default function FlashcardGenerator({
     // Get API key from localStorage
     const apiKey = localStorage.getItem('openRouterApiKey');
     
-    // Check if API key exists
-    if (!apiKey) {
-      throw new Error('No API key found. Please add your OpenRouter API key in the settings.');
-    }
-    
     // Get the note content
     const note = getNoteById(options.noteId);
     if (!note) {
@@ -132,115 +127,123 @@ Return exactly ${options.maxCards} flashcards focusing on the most important con
     let usedFallback = false;
     
     try {
-      // Make the API call to OpenRouter
-      // Get safe URL for referer
-      let referer = "https://smart-note-organizer.com";
-      try {
-        if (typeof window !== 'undefined' && window.location && window.location.href) {
-          referer = window.location.href;
-        }
-      } catch (error) {
-        console.error("Error getting window location:", error);
-      }
-      
-      console.log("Making OpenRouter API call with model: google/gemini-2.0-flash-exp:free");
-      
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
-          "HTTP-Referer": referer,
-          "X-Title": "Smart Note Organizer"
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.0-flash-exp:free",
-          messages: [
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
-          temperature: options.temperature
-        })
-      });
-      
-      // Log the response status for debugging
-      console.log(`API response status: ${response.status}`);
-      
-      if (!response.ok) {
-        let errorMessage = `API error (${response.status}): `;
-        
-        try {
-          const errorText = await response.text();
-          try {
-            const errorData = JSON.parse(errorText);
-            errorMessage += errorData.error?.message || response.statusText || "Unknown error occurred";
-            console.error('API error response:', errorData);
-          } catch {
-            errorMessage += errorText || response.statusText || "Unknown error occurred";
-            console.error('API error (non-JSON):', errorText);
-          }
-        } catch (err) {
-          console.error('Failed to read error response:', err);
-          errorMessage += 'Failed to read error response';
-        }
-        
-        // Try the fallback to Gemini API
-        console.log("OpenRouter API call failed, trying Gemini API fallback");
+      // If no OpenRouter API key is set, use Gemini directly
+      if (!apiKey) {
+        console.log("No OpenRouter API key found, using Gemini API directly");
         content = await callGeminiApi(prompt);
         usedFallback = true;
-        console.log("Successfully retrieved content from Gemini API fallback");
+        console.log("Successfully retrieved content from Gemini API");
       } else {
-        // Try to get the response text to debug potential JSON parsing errors
-        const responseText = await response.text();
-        console.log("Raw API response:", responseText.substring(0, 200) + "...");
+        // Make the API call to OpenRouter
+        // Get safe URL for referer
+        let referer = "https://smart-note-organizer.com";
+        try {
+          if (typeof window !== 'undefined' && window.location && window.location.href) {
+            referer = window.location.href;
+          }
+        } catch (error) {
+          console.error("Error getting window location:", error);
+        }
         
-        // Check if the response is empty
-        if (!responseText || responseText.trim() === '') {
-          console.error("Empty response received from API");
+        console.log("Making OpenRouter API call with model: google/gemini-2.0-flash-exp:free");
+        
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+            "HTTP-Referer": referer,
+            "X-Title": "Smart Note Organizer"
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.0-flash-exp:free",
+            messages: [
+              {
+                role: "user",
+                content: prompt
+              }
+            ],
+            temperature: options.temperature
+          })
+        });
+        
+        // Log the response status for debugging
+        console.log(`API response status: ${response.status}`);
+        
+        if (!response.ok) {
+          let errorMessage = `API error (${response.status}): `;
+          
+          try {
+            const errorText = await response.text();
+            try {
+              const errorData = JSON.parse(errorText);
+              errorMessage += errorData.error?.message || response.statusText || "Unknown error occurred";
+              console.error('API error response:', errorData);
+            } catch {
+              errorMessage += errorText || response.statusText || "Unknown error occurred";
+              console.error('API error (non-JSON):', errorText);
+            }
+          } catch (err) {
+            console.error('Failed to read error response:', err);
+            errorMessage += 'Failed to read error response';
+          }
+          
           // Try the fallback to Gemini API
-          console.log("Empty response from OpenRouter, trying Gemini API fallback");
+          console.log("OpenRouter API call failed, trying Gemini API fallback");
           content = await callGeminiApi(prompt);
           usedFallback = true;
           console.log("Successfully retrieved content from Gemini API fallback");
         } else {
-          // Parse JSON response
-          let data;
-          try {
-            data = JSON.parse(responseText);
-            console.log('API response data structure:', Object.keys(data));
-            
-            // Extract the content from the response
-            if (data.choices && data.choices.length > 0) {
-              if (data.choices[0].message && data.choices[0].message.content) {
-                content = data.choices[0].message.content.trim();
-              } else if (data.choices[0].text) {
-                content = data.choices[0].text.trim();
+          // Try to get the response text to debug potential JSON parsing errors
+          const responseText = await response.text();
+          console.log("Raw API response:", responseText.substring(0, 200) + "...");
+          
+          // Check if the response is empty
+          if (!responseText || responseText.trim() === '') {
+            console.error("Empty response received from API");
+            // Try the fallback to Gemini API
+            console.log("Empty response from OpenRouter, trying Gemini API fallback");
+            content = await callGeminiApi(prompt);
+            usedFallback = true;
+            console.log("Successfully retrieved content from Gemini API fallback");
+          } else {
+            // Parse JSON response
+            let data;
+            try {
+              data = JSON.parse(responseText);
+              console.log('API response data structure:', Object.keys(data));
+              
+              // Extract the content from the response
+              if (data.choices && data.choices.length > 0) {
+                if (data.choices[0].message && data.choices[0].message.content) {
+                  content = data.choices[0].message.content.trim();
+                } else if (data.choices[0].text) {
+                  content = data.choices[0].text.trim();
+                }
               }
-            }
-            
-            if (!content) {
-              console.error("No content in API response:", data);
-              // Try the fallback to Gemini API
-              console.log("No content in OpenRouter response, trying Gemini API fallback");
-              content = await callGeminiApi(prompt);
-              usedFallback = true;
-              console.log("Successfully retrieved content from Gemini API fallback");
-            }
-          } catch (parseError) {
-            console.error("Failed to parse API response:", parseError);
-            
-            // If we can't parse the response, try to extract text content directly or use fallback
-            if (responseText.length > 20) {
-              console.log("Attempting to parse raw text response directly");
-              return parseRawTextIntoFlashcards(responseText, note.tags || [], cardType, options.maxCards);
-            } else {
-              // Try the fallback to Gemini API
-              console.log("Failed to parse OpenRouter response, trying Gemini API fallback");
-              content = await callGeminiApi(prompt);
-              usedFallback = true;
-              console.log("Successfully retrieved content from Gemini API fallback");
+              
+              if (!content) {
+                console.error("No content in API response:", data);
+                // Try the fallback to Gemini API
+                console.log("No content in OpenRouter response, trying Gemini API fallback");
+                content = await callGeminiApi(prompt);
+                usedFallback = true;
+                console.log("Successfully retrieved content from Gemini API fallback");
+              }
+            } catch (parseError) {
+              console.error("Failed to parse API response:", parseError);
+              
+              // If we can't parse the response, try to extract text content directly or use fallback
+              if (responseText.length > 20) {
+                console.log("Attempting to parse raw text response directly");
+                return parseRawTextIntoFlashcards(responseText, note.tags || [], cardType, options.maxCards);
+              } else {
+                // Try the fallback to Gemini API
+                console.log("Failed to parse OpenRouter response, trying Gemini API fallback");
+                content = await callGeminiApi(prompt);
+                usedFallback = true;
+                console.log("Successfully retrieved content from Gemini API fallback");
+              }
             }
           }
         }
@@ -285,17 +288,7 @@ Return exactly ${options.maxCards} flashcards focusing on the most important con
       return;
     }
     
-    // Check for API key
-    const apiKey = localStorage.getItem('openRouterApiKey');
-    if (!apiKey) {
-      setInfoModalContent({
-        title: 'API Key Required',
-        message: 'Please add an OpenRouter API key in settings to use flashcard generation. You can add your API key in the Settings page.'
-      });
-      setShowInfoModal(true);
-      return;
-    }
-    
+    // Start generating regardless of API key presence - we'll use Gemini if no OpenRouter key
     setIsGenerating(true);
     
     try {

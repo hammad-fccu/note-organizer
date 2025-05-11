@@ -217,15 +217,7 @@ export default function NotePage({
       const model = 'google/gemini-2.0-flash-exp:free';
       const apiKey = localStorage.getItem('openRouterApiKey') || '';
       
-      if (!apiKey) {
-        setInfoModalContent({
-          title: 'API Key Required',
-          message: 'Please add an OpenRouter API key in settings to use tag generation. You can add your API key in the Settings page.'
-        });
-        setShowInfoModal(true);
-        setIsGeneratingTags(false);
-        return Promise.reject('No API key');
-      }
+      // No need to check for API key - the generateTags function now handles that
       
       const generatedTags = await generateTags({
         text: content,
