@@ -22,6 +22,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showAllTags, setShowAllTags] = useState(false);
   
   // Get app data
   const allTags = getAllTags();
@@ -31,6 +32,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const filteredTags = allTags.filter(tag => 
     tag.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  // Get visible tags based on showAllTags state
+  const visibleTags = showAllTags ? filteredTags : filteredTags.slice(0, 6);
   
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -70,6 +74,55 @@ export default function AppLayout({ children }: AppLayoutProps) {
   if (status === 'unauthenticated') {
     redirect('/auth/signin');
   }
+
+  // Update the tags section in both mobile and desktop views
+  const renderTagsSection = () => (
+    <div className="mt-4 mb-6">
+      <div className="flex items-center justify-between px-2 mb-2">
+        <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tags</h3>
+      </div>
+      <div className={`space-y-1 ${!showAllTags && filteredTags.length > 6 ? 'max-h-[180px]' : ''} ${showAllTags ? 'overflow-y-auto' : ''}`}>
+        {visibleTags.length > 0 ? (
+          <>
+            {visibleTags.map(tag => (
+              <Link 
+                key={tag}
+                href={`/app/notes?tag=${tag}`}
+                className="flex items-center px-2 py-1 text-sm rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span 
+                  className="w-2 h-2 rounded-full mr-2"
+                  style={getTagStyle(tag)}
+                ></span>
+                <span className="truncate">{tag}</span>
+              </Link>
+            ))}
+            {!showAllTags && filteredTags.length > 6 && (
+              <button
+                onClick={() => setShowAllTags(true)}
+                className="w-full text-left px-2 py-1 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+              >
+                View More ({filteredTags.length - 6} more)
+              </button>
+            )}
+            {showAllTags && (
+              <button
+                onClick={() => setShowAllTags(false)}
+                className="w-full text-left px-2 py-1 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+              >
+                Show Less
+              </button>
+            )}
+          </>
+        ) : (
+          <div className="text-sm text-gray-500 dark:text-gray-400 p-2 italic">
+            {searchTerm ? 'No matching tags found' : 'No tags yet'}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
@@ -276,33 +329,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </div>
 
             {/* Tags Section */}
-            <div className="mt-4">
-              <div className="flex items-center justify-between px-2 mb-2">
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tags</h3>
-              </div>
-              <div className="space-y-1">
-                {filteredTags.length > 0 ? (
-                  filteredTags.map(tag => (
-                    <Link 
-                      key={tag}
-                      href={`/app/notes?tag=${tag}`}
-                      className="flex items-center px-2 py-1 text-sm rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <span 
-                        className="w-2 h-2 rounded-full mr-2"
-                        style={getTagStyle(tag)}
-                      ></span>
-                      <span className="truncate">{tag}</span>
-                    </Link>
-                  ))
-                ) : (
-                  <div className="text-sm text-gray-500 dark:text-gray-400 p-2 italic">
-                    {searchTerm ? 'No matching tags found' : 'No tags yet'}
-                  </div>
-                )}
-              </div>
-            </div>
+            {renderTagsSection()}
 
             {/* Action Buttons */}
             <div className="mt-4 space-y-2">
@@ -409,32 +436,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
               {/* Folders Section */}
               <FolderList searchTerm={searchTerm} />
               
-              <div className="pt-4 pb-2">
-                <div className="flex items-center justify-between px-2">
-                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tags</h3>
-                </div>
-                <div className="mt-2 space-y-1">
-                  {filteredTags.length > 0 ? (
-                    filteredTags.map(tag => (
-                      <Link 
-                        key={tag}
-                        href={`/app/notes?tag=${tag}`}
-                        className="flex items-center px-2 py-1 text-sm rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        <span 
-                          className="w-2 h-2 rounded-full mr-2"
-                          style={getTagStyle(tag)}
-                        ></span>
-                        <span className="truncate">{tag}</span>
-                      </Link>
-                    ))
-                  ) : (
-                    <div className="text-sm text-gray-500 dark:text-gray-400 p-2 italic">
-                      {searchTerm ? 'No matching tags found' : 'No tags yet'}
-                    </div>
-                  )}
-                </div>
-              </div>
+              {/* Tags Section */}
+              {renderTagsSection()}
 
               {/* New Note Button */}
               <div className="pt-4">

@@ -66,9 +66,6 @@ export default function SignIn() {
           <div className="text-center">
             <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">Sign In</h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">Welcome back! Sign in to your account</p>
-            <div className="mt-2 text-sm text-blue-600 dark:text-blue-400">
-              <p>Test user: test@example.com / password123</p>
-            </div>
           </div>
 
           {error && (

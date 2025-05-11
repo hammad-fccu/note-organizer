@@ -310,7 +310,7 @@ export default function ImportPage() {
             </div>
           )}
           
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-200 rounded-md text-sm">
+          <div className="mt-4 p-3 bg-white dark:bg-blue-900/20 text-gray-400 dark:text-blue-200 rounded-md text-sm">
             <p className="font-medium">PDF Import Tips:</p>
             <ul className="list-disc list-inside text-xs mt-1">
               <li>Text-based PDFs work best (not scanned documents)</li>

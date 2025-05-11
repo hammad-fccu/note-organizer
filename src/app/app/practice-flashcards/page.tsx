@@ -6,8 +6,7 @@ import FlashcardPractice from '@/components/flashcards/FlashcardPractice';
 import ImportDeck from '@/components/flashcards/ImportDeck';
 import { FlashcardReview } from '@/types/flashcards';
 import { v4 as uuidv4 } from 'uuid';
-import { GeneratorTab } from '@/components/flashcards/FlashcardGenerator';
-import { useSearchParams } from 'next/navigation';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 enum PracticeMode {
   IMPORT = 'import',
@@ -49,15 +48,8 @@ export default function PracticeFlashcardsPage() {
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('decks');
-  const searchParams = useSearchParams();
-  
-  // Set the active tab based on URL parameter
-  useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam && ['decks', 'import', 'generate'].includes(tabParam)) {
-      setActiveTab(tabParam);
-    }
-  }, [searchParams]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deckToDelete, setDeckToDelete] = useState<string | null>(null);
   
   // Load saved flashcards from localStorage
   useEffect(() => {
@@ -130,12 +122,19 @@ export default function PracticeFlashcardsPage() {
   
   // Delete a deck
   const handleDeleteDeck = (deckId: string) => {
-    if (confirm('Are you sure you want to delete this deck?')) {
+    setDeckToDelete(deckId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteDeck = () => {
+    if (deckToDelete) {
       setSavedDecks(prevDecks => {
         const newDecks = { ...prevDecks };
-        delete newDecks[deckId];
+        delete newDecks[deckToDelete];
         return newDecks;
       });
+      setShowDeleteModal(false);
+      setDeckToDelete(null);
     }
   };
   
@@ -399,6 +398,17 @@ export default function PracticeFlashcardsPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDeleteDeck}
+        title="Delete Deck"
+        message="Are you sure you want to delete this deck? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 } 
