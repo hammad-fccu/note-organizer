@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SummaryType, AI_MODELS, generateSummary } from '@/utils/aiSummary';
+import { Copy, Check } from 'lucide-react';
 
 interface NoteSummaryProps {
   noteContent: string;
@@ -65,9 +66,36 @@ export default function NoteSummary({ noteContent, onSummarize, existingSummary 
               {existingSummary.type === 'brief' ? 'Brief Summary' : 
               existingSummary.type === 'detailed' ? 'Detailed Summary' : 'Bullet Points'}
             </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              Generated on {new Date(existingSummary.createdAt).toLocaleDateString()}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Generated on {new Date(existingSummary.createdAt).toLocaleDateString()}
+              </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(existingSummary.text);
+                  const button = document.getElementById('copy-button');
+                  if (button) {
+                    const copyIcon = button.querySelector('.copy-icon');
+                    const checkIcon = button.querySelector('.check-icon');
+                    if (copyIcon && checkIcon) {
+                      copyIcon.classList.add('hidden');
+                      checkIcon.classList.remove('hidden');
+                      
+                      setTimeout(() => {
+                        copyIcon.classList.remove('hidden');
+                        checkIcon.classList.add('hidden');
+                      }, 2000);
+                    }
+                  }
+                }}
+                id="copy-button"
+                className="p-2 rounded-full text-blue-500 hover:text-blue-600"
+                title="Copy summary to clipboard"
+              >
+                <Copy className="w-6 h-6 copy-icon" />
+                <Check className="w-6 h-6 check-icon hidden" />
+              </button>
+            </div>
           </div>
           
           <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-800 dark:text-gray-200">
