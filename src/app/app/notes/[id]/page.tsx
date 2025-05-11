@@ -208,7 +208,7 @@ export default function NotePage({ params }: NotePageProps) {
       // Use the default model and API key - in a real app you'd get these from settings
       // For demo we're mocking this functionality
       const model = 'google/gemini-2.0-flash-exp:free';
-      const apiKey = localStorage.getItem('openrouter_api_key') || '';
+      const apiKey = localStorage.getItem('openRouterApiKey') || '';
       
       if (!apiKey) {
         alert('Please add an OpenRouter API key in settings to use tag generation');

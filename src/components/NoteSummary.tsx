@@ -22,7 +22,7 @@ export default function NoteSummary({ noteContent, onSummarize, existingSummary 
   // Use localStorage for the API key
   const getApiKey = () => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('openrouter_api_key') || '';
+      return localStorage.getItem('openRouterApiKey') || '';
     }
     return '';
   };
