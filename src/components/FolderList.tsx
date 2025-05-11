@@ -142,13 +142,13 @@ export default function FolderList({ searchTerm = '' }: FolderListProps) {
                       </svg>
                       <span className="truncate">{folder.name}</span>
                     </div>
-                    <span className="text-xs bg-gray-200 dark:bg-gray-600 rounded-full px-1.5 py-0.5">{notesCount}</span>
+                    <span className="text-xs bg-gray-200 dark:bg-gray-600 rounded-full px-1.5 py-0.5 group-hover:hidden">{notesCount}</span>
                   </Link>
                 )}
                 
                 {/* Edit/Delete buttons shown on hover */}
                 {editingFolderId !== folder.id && (
-                  <div className="absolute right-0 top-0 h-full hidden group-hover:flex items-center pr-2 bg-gradient-to-l from-white dark:from-gray-800 via-white dark:via-gray-800">
+                  <div className="absolute right-0 top-0 h-full hidden group-hover:flex items-center pr-2">
                     <button
                       onClick={() => handleEditFolder(folder)}
                       className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
