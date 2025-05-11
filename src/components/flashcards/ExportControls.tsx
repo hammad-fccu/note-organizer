@@ -116,7 +116,7 @@ export default function ExportControls({ flashcards, deckName, modelName }: Expo
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-      <h2 className="text-lg font-medium mb-4">Step 5: Export Flashcards</h2>
+      <h2 className="text-lg font-medium mb-4">Export Flashcards</h2>
       
       <div className="space-y-6">
         {/* Success/error message */}

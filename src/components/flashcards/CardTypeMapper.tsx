@@ -28,7 +28,7 @@ export default function CardTypeMapper({ onCardTypeChanged, onFieldMappingChange
   
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 h-full">
-      <h2 className="text-lg font-medium mb-4">Step 2: Configure Anki Card Settings</h2>
+      <h2 className="text-lg font-medium mb-4">Configure Anki Card Settings</h2>
       
       <div className="space-y-6">
         {/* Card Type Selection */}

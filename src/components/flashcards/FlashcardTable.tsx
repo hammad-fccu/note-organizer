@@ -72,7 +72,7 @@ export default function FlashcardTable({ flashcards, onFlashcardsUpdated }: Flas
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-medium">Step 4: Preview & Edit Flashcards</h2>
+        <h2 className="text-lg font-medium">Preview & Edit Flashcards</h2>
         <span className="text-sm bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
           {flashcards.length} Cards
         </span>

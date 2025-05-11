@@ -70,22 +70,22 @@ export default function FlashcardsPage() {
       
       {/* Main content */}
       <div className="space-y-6">
-        {/* Step 1 and 2 side by side */}
+        {/* Note selection and card type configuration */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Step 1: Note Selection */}
+          {/* Note Selection */}
           <NoteDeckSelector
             onNoteSelected={handleNoteSelected}
             onDeckNameChanged={handleDeckNameChanged}
           />
           
-          {/* Step 2: Card Type & Mapping */}
+          {/* Card Type & Mapping */}
           <CardTypeMapper
             onCardTypeChanged={handleCardTypeChanged}
             onFieldMappingChanged={handleFieldMappingChanged}
           />
         </div>
         
-        {/* Step 3: Flashcard Generation */}
+        {/* Flashcard Generation */}
         <FlashcardGenerator
           noteId={selectedNoteId}
           cardType={cardType}
@@ -94,13 +94,13 @@ export default function FlashcardsPage() {
           setIsGenerating={setIsGenerating}
         />
         
-        {/* Step 4: Preview & Edit */}
+        {/* Preview & Edit */}
         <FlashcardTable
           flashcards={flashcards}
           onFlashcardsUpdated={handleFlashcardsUpdated}
         />
         
-        {/* Step 5: Export */}
+        {/* Export */}
         <ExportControls
           flashcards={flashcards}
           deckName={deckName}

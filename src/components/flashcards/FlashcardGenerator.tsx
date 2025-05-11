@@ -514,7 +514,7 @@ Please try again with different settings or a different note.`);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-      <h2 className="text-lg font-medium mb-4">Step 3: AI-Assisted Card Generation</h2>
+      <h2 className="text-lg font-medium mb-4">AI-Assisted Card Generation</h2>
       
       <div className="space-y-6">
         {/* Number of Cards */}
@@ -523,7 +523,7 @@ Please try again with different settings or a different note.`);
             <label htmlFor="max-cards" className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Number of Cards to Generate
             </label>
-            <span className="text-sm font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+            <span className="text-sm font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full">
               {maxCards}
             </span>
           </div>
@@ -561,7 +561,7 @@ Please try again with different settings or a different note.`);
             <label htmlFor="temperature" className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Creativity Level
             </label>
-            <span className="text-sm font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+            <span className="text-sm font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full">
               {temperature.toFixed(1)}
             </span>
           </div>

@@ -125,7 +125,7 @@ export default function NoteDeckSelector({ onNoteSelected, onDeckNameChanged }: 
   
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 h-full">
-      <h2 className="text-lg font-medium mb-4">Step 1: Select Note & Name Your Deck</h2>
+      <h2 className="text-lg font-medium mb-4">Select Note & Name Your Deck</h2>
       
       <div className="space-y-4">
         {/* Note Selection */}
