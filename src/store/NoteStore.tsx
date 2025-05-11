@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { v4 as uuidv4 } from 'uuid';
 import { Note, Folder } from '@/types/note';
 import { SummaryType } from '@/utils/aiSummary';
+import { useSession } from 'next-auth/react';
 
 interface NoteContextType {
   notes: Note[];
@@ -43,13 +44,27 @@ interface NoteProviderProps {
 }
 
 export function NoteProvider({ children }: NoteProviderProps) {
+  const { data: session, status } = useSession();
   const [notes, setNotes] = useState<Note[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   
-  // Load notes and folders from localStorage on mount
+  // Clear notes and folders when user signs out
   useEffect(() => {
-    const savedNotes = localStorage.getItem('notes');
-    const savedFolders = localStorage.getItem('folders');
+    if (status === 'unauthenticated') {
+      setNotes([]);
+      setFolders([]);
+    }
+  }, [status]);
+  
+  // Load notes and folders from localStorage on mount or when user changes
+  useEffect(() => {
+    if (status !== 'authenticated' || !session?.user?.id) return;
+
+    const storageKey = `notes_${session.user.id}`;
+    const folderKey = `folders_${session.user.id}`;
+    
+    const savedNotes = localStorage.getItem(storageKey);
+    const savedFolders = localStorage.getItem(folderKey);
     
     if (savedNotes) {
       try {
@@ -66,16 +81,22 @@ export function NoteProvider({ children }: NoteProviderProps) {
         console.error('Failed to parse saved folders', e);
       }
     }
-  }, []);
+  }, [session?.user?.id, status]);
   
   // Save notes and folders to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('notes', JSON.stringify(notes));
-  }, [notes]);
+    if (status !== 'authenticated' || !session?.user?.id) return;
+    
+    const storageKey = `notes_${session.user.id}`;
+    localStorage.setItem(storageKey, JSON.stringify(notes));
+  }, [notes, session?.user?.id, status]);
   
   useEffect(() => {
-    localStorage.setItem('folders', JSON.stringify(folders));
-  }, [folders]);
+    if (status !== 'authenticated' || !session?.user?.id) return;
+    
+    const folderKey = `folders_${session.user.id}`;
+    localStorage.setItem(folderKey, JSON.stringify(folders));
+  }, [folders, session?.user?.id, status]);
   
   // Note management functions
   const addNote = (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
