@@ -34,8 +34,10 @@ export default function NotePage({ params }: NotePageProps) {
     type: SummaryType;
     createdAt: string;
   } | undefined>(undefined);
-  // Add state for tag generation loading
+  // Add state for tag generation
   const [isGeneratingTags, setIsGeneratingTags] = useState(false);
+  // Add state to force re-render when tags update
+  const [tagUpdateCount, setTagUpdateCount] = useState(0);
   
   // Load note data
   useEffect(() => {
@@ -51,6 +53,32 @@ export default function NotePage({ params }: NotePageProps) {
       setNotFound(true);
     }
   }, [id, getNoteById]);
+  
+  // Add debugging effect to monitor tags changes
+  useEffect(() => {
+    console.log('Tags state updated:', tags);
+  }, [tags]);
+  
+  // Refresh note data when switching between edit and view modes
+  useEffect(() => {
+    if (!isEditing) {
+      const note = getNoteById(id);
+      if (note) {
+        setTags(note.tags.join(', '));
+      }
+    }
+  }, [isEditing, id, getNoteById]);
+  
+  // Refresh note data when tagUpdateCount changes
+  useEffect(() => {
+    if (tagUpdateCount > 0) {
+      const note = getNoteById(id);
+      if (note) {
+        setTags(note.tags.join(', '));
+        console.log('Updated tags from effect:', note.tags);
+      }
+    }
+  }, [tagUpdateCount, id, getNoteById]);
   
   const handleSave = () => {
     updateNote(id, {
@@ -92,12 +120,14 @@ export default function NotePage({ params }: NotePageProps) {
   const handleGenerateTags = async () => {
     if (!content || content.trim().length === 0) {
       alert('Please add some content to your note before generating tags');
-      return;
+      return Promise.reject('No content');
     }
     
     setIsGeneratingTags(true);
     
     try {
+      console.log('Starting tag generation with content:', content.substring(0, 50) + '...');
+      
       // Use the default model and API key - in a real app you'd get these from settings
       // For demo we're mocking this functionality
       const model = 'google/gemini-2.0-flash-exp:free';
@@ -106,7 +136,7 @@ export default function NotePage({ params }: NotePageProps) {
       if (!apiKey) {
         alert('Please add an OpenRouter API key in settings to use tag generation');
         setIsGeneratingTags(false);
-        return;
+        return Promise.reject('No API key');
       }
       
       const generatedTags = await generateTags({
@@ -116,14 +146,43 @@ export default function NotePage({ params }: NotePageProps) {
         apiKey
       });
       
+      console.log('Received generated tags:', generatedTags);
+      
       // If we have existing tags, merge them with the generated ones
       const existingTags = tags ? tags.split(',').map(t => t.trim()).filter(t => t !== '') : [];
       const mergedTags = [...new Set([...existingTags, ...generatedTags])];
+      const newTagsString = mergedTags.join(', ');
       
-      setTags(mergedTags.join(', '));
+      console.log('Merged tags string:', newTagsString);
+      console.log('Current tags before update:', tags);
+      
+      // Update local state
+      setTags(newTagsString);
+      
+      // Make sure to create a clean array of tags for storing in the note
+      const cleanTags = newTagsString.split(',').map(t => t.trim()).filter(t => t !== '');
+      
+      console.log('Clean tags for store update:', cleanTags);
+      
+      // Save changes to store
+      updateNote(id, {
+        title,
+        content,
+        contentHtml: content.replace(/\n/g, '<br>'),
+        tags: cleanTags,
+      });
+      
+      // Reload note data to ensure UI is in sync with store
+      const updatedNote = getNoteById(id);
+      if (updatedNote) {
+        console.log('Updated note tags from store:', updatedNote.tags);
+      }
+      
+      return Promise.resolve(mergedTags);
     } catch (error) {
       console.error('Failed to generate tags:', error);
       alert('Failed to generate tags. Please try again later.');
+      return Promise.reject(error);
     } finally {
       setIsGeneratingTags(false);
     }
@@ -144,47 +203,52 @@ export default function NotePage({ params }: NotePageProps) {
         </div>
       </div>
       
-      {(tags || content) && (
-        <div className="mb-4">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tags:</h3>
-          <div className="flex flex-wrap gap-2 items-center">
-            {tags.split(',').map((tag, index) => (
-              <span
-                key={index}
-                className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm"
-              >
-                {tag.trim()}
-              </span>
-            ))}
-            <button
-              onClick={() => {
-                setIsEditing(true);
-                setTimeout(handleGenerateTags, 100);
-              }}
-              disabled={isGeneratingTags || !content}
-              className={`ml-2 px-3 py-1 bg-gray-800 text-blue-400 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all hover:shadow-[0_0_12px_rgba(59,130,246,0.6)] ${isGeneratingTags ? 'opacity-50 cursor-not-allowed' : ''}`}
-              title="Auto-generate tags based on content"
+      <div className="mb-4">
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tags:</h3>
+        <div className="flex flex-wrap gap-2 items-center" key={`tags-container-${tagUpdateCount}`}>
+          {tags && tags.split(',').filter(tag => tag.trim() !== '').map((tag, index) => (
+            <span
+              key={`tag-${index}-${tag.trim()}-${tagUpdateCount}`}
+              className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm"
             >
-              {isGeneratingTags ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Generating...
-                </span>
-              ) : (
-                <>
-                  <svg className="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Generate Tags
-                </>
-              )}
-            </button>
-          </div>
+              {tag.trim()}
+            </span>
+          ))}
+          <button
+            onClick={() => {
+              handleGenerateTags().then(() => {
+                // Force a refresh of the component after tags are generated
+                const note = getNoteById(id);
+                if (note) {
+                  setTags(note.tags.join(', '));
+                  setTagUpdateCount(prev => prev + 1);
+                  console.log('Tags updated in view mode, forcing re-render');
+                }
+              }).catch(err => console.error('Tag generation error:', err));
+            }}
+            disabled={isGeneratingTags || !content}
+            className={`ml-2 px-3 py-1 bg-gray-800 text-blue-400 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all hover:shadow-[0_0_12px_rgba(59,130,246,0.6)] ${isGeneratingTags ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title="Auto-generate tags based on content"
+          >
+            {isGeneratingTags ? (
+              <span className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Generating...
+              </span>
+            ) : (
+              <>
+                <svg className="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Generate Tags
+              </>
+            )}
+          </button>
         </div>
-      )}
+      </div>
       
       {currentFolder && (
         <div className="mb-4">
@@ -336,8 +400,10 @@ export default function NotePage({ params }: NotePageProps) {
                 </label>
                 <button
                   onClick={() => {
-                    setIsEditing(true);
-                    setTimeout(handleGenerateTags, 100);
+                    handleGenerateTags().then(() => {
+                      console.log('Tags updated in edit mode');
+                      setTagUpdateCount(prev => prev + 1);
+                    }).catch(err => console.error('Tag generation error:', err));
                   }}
                   disabled={isGeneratingTags || !content}
                   className={`px-3 py-1 bg-gray-800 text-blue-400 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all hover:shadow-[0_0_12px_rgba(59,130,246,0.6)] ${isGeneratingTags ? 'opacity-50 cursor-not-allowed' : ''}`}
