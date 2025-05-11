@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ThemeToggle from '@/components/ThemeToggle';
+import { createUser } from '@/lib/auth';
 
 export default function SignUp() {
   const [email, setEmail] = useState('');
