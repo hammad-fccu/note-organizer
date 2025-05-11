@@ -108,7 +108,7 @@ export default function FlashcardPractice() {
       {/* Progress Header */}
       <div className="bg-white dark:bg-gray-800 p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-lg font-semibold">Practice Flashcards</h1>
+          <h1 className="text-lg font-semibold">Flashcards</h1>
           <div className="flex items-center gap-2">
             <button 
               className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"

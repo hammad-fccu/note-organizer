@@ -136,7 +136,7 @@ export default function PracticeFlashcardsPage() {
       {mode === PracticeMode.IMPORT ? (
         <div className="container mx-auto py-6 px-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-            <h1 className="text-2xl font-bold">Practice Flashcards</h1>
+            <h1 className="text-2xl font-bold">Flashcards</h1>
             
             {/* Stats */}
             {!isLoading && Object.keys(savedDecks).length > 0 && (
