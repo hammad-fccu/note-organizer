@@ -1,21 +1,20 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useNotes } from '@/store/NoteStore';
 import { getTagStyle } from '@/utils/tagColors';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
-interface FolderPageProps {
-  params: {
-    id: string;
-  };
+export default function FolderPage({
+  params,
+  searchParams
+}: {
+  params: Promise<{ id: string }>;
   searchParams: { [key: string]: string | string[] | undefined };
-}
-
-export default function FolderPage({ params, searchParams }: FolderPageProps) {
-  const { id } = params;
+}) {
+  const { id } = use(params);
   const router = useRouter();
   const { 
     folders, 

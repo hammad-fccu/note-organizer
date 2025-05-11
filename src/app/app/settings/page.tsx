@@ -28,7 +28,7 @@ export default function SettingsPage() {
     const storedApiKey = localStorage.getItem('openRouterApiKey');
     if (!storedApiKey) {
       // Set default API key if none exists
-      const defaultKey = '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';
+      const defaultKey = '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';
       localStorage.setItem('openRouterApiKey', defaultKey);
       setOpenRouterApiKey(defaultKey);
     } else {

@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useNotes } from '@/store/NoteStore';
@@ -82,14 +82,12 @@ const normalizeTags = (tags: string[]): string[] => {
   return Array.from(finalTags.values());
 };
 
-interface NotePageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function NotePage({ params }: NotePageProps) {
-  const { id } = params;
+export default function NotePage({
+  params
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
   const router = useRouter();
   const { getNoteById, updateNote, deleteNote, favoriteNote, addSummaryToNote, folders, moveNoteToFolder } = useNotes();
   
