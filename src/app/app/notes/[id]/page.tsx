@@ -150,11 +150,19 @@ export default function NotePage({ params }: NotePageProps) {
   }, [tagUpdateCount, id, getNoteById]);
   
   const handleSave = () => {
+    // Split tags, trim them, and filter out empty tags
+    const tagList = tags.split(',')
+      .map(tag => tag.trim())
+      .filter(tag => tag !== '');
+    
+    // Deduplicate tags using the normalizeTags function
+    const uniqueTags = normalizeTags(tagList);
+    
     updateNote(id, {
       title: title.trim() || 'Untitled Note',
       content,
       contentHtml: content.replace(/\n/g, '<br>'),
-      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
+      tags: uniqueTags,
     });
     
     // Handle folder change separately if changed
