@@ -17,6 +17,7 @@ interface FlashcardContextType {
   prevCard: () => void;
   skipCard: () => void;
   importCardsFromText: (text: string) => FlashcardReview[];
+  importCardsFromAnkiText: (text: string) => FlashcardReview[];
 }
 
 const FlashcardContext = createContext<FlashcardContextType | undefined>(undefined);
@@ -199,6 +200,115 @@ export function FlashcardProvider({ children }: FlashcardProviderProps) {
     return cards;
   };
   
+  // Import flashcards from Anki export format text
+  const importCardsFromAnkiText = (text: string): FlashcardReview[] => {
+    const cards: FlashcardReview[] = [];
+    const lines = text.split('\n');
+    
+    // Parse Anki export metadata
+    let separator = '\t'; // Default to tab separator
+    let columnMap: { [key: string]: number } = {}; // Maps column names to indices
+    let hasFoundColumns = false;
+    let tags: string[] = [];
+    
+    // Process header lines and find column definitions
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Skip empty lines
+      if (!line) continue;
+      
+      // Parse separator definition
+      if (line.startsWith('#separator:')) {
+        const sep = line.substring('#separator:'.length).trim();
+        if (sep === 'Tab') {
+          separator = '\t';
+        } else {
+          separator = sep;
+        }
+        continue;
+      }
+      
+      // Extract tags if defined at deck level
+      if (line.startsWith('#tags:')) {
+        const tagsList = line.substring('#tags:'.length).trim();
+        tags = tagsList.split(' ').filter(Boolean);
+        continue;
+      }
+      
+      // Find column definitions line
+      if (line.startsWith('#columns:')) {
+        const columnNames = line.substring('#columns:'.length).trim().split(separator);
+        columnNames.forEach((name, index) => {
+          columnMap[name.toLowerCase()] = index;
+        });
+        hasFoundColumns = true;
+        continue;
+      }
+      
+      // Once we've found the columns definition, start parsing card data
+      if (hasFoundColumns && !line.startsWith('#')) {
+        const fields = line.split(separator);
+        
+        // Skip lines that don't have enough fields
+        if (fields.length < 2) continue;
+        
+        // Extract front (question) and back (answer)
+        const frontIdx = columnMap['front'] !== undefined ? columnMap['front'] : 0;
+        const backIdx = columnMap['back'] !== undefined ? columnMap['back'] : 1;
+        const tagsIdx = columnMap['tags'] !== undefined ? columnMap['tags'] : 2;
+        
+        const front = fields[frontIdx]?.trim() || '';
+        const back = fields[backIdx]?.trim() || '';
+        
+        // Extract tags if they exist in this row
+        let cardTags = [...tags]; // Start with deck-level tags
+        if (tagsIdx < fields.length && fields[tagsIdx]) {
+          cardTags = [...cardTags, ...fields[tagsIdx].split(' ').filter(Boolean)];
+        }
+        
+        // Only add if we have both front and back
+        if (front && back) {
+          cards.push({
+            id: uuidv4(),
+            front,
+            back,
+            tags: cardTags,
+            dueDate: new Date().toISOString(),
+            reviewCount: 0
+          });
+        }
+      }
+    }
+    
+    // If no cards were found using the column-based approach, try a simpler approach
+    if (cards.length === 0) {
+      // Look for tab-separated lines without headers
+      for (const line of lines) {
+        if (line.trim() && !line.startsWith('#')) {
+          const fields = line.split(separator);
+          if (fields.length >= 2) {
+            const front = fields[0]?.trim() || '';
+            const back = fields[1]?.trim() || '';
+            
+            if (front && back) {
+              cards.push({
+                id: uuidv4(),
+                front,
+                back,
+                tags: [],
+                dueDate: new Date().toISOString(),
+                reviewCount: 0
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    return cards;
+  };
+  
   const value = {
     reviewCards,
     currentIndex,
@@ -212,7 +322,8 @@ export function FlashcardProvider({ children }: FlashcardProviderProps) {
     nextCard,
     prevCard,
     skipCard,
-    importCardsFromText
+    importCardsFromText,
+    importCardsFromAnkiText
   };
   
   return <FlashcardContext.Provider value={value}>{children}</FlashcardContext.Provider>;

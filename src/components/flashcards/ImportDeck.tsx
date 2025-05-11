@@ -5,7 +5,7 @@ import { useFlashcards } from '@/store/FlashcardStore';
 import { FlashcardReview } from '@/types/flashcards';
 
 export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardReview[]) => void }) {
-  const { importCardsFromText } = useFlashcards();
+  const { importCardsFromText, importCardsFromAnkiText } = useFlashcards();
   const [text, setText] = useState('');
   const [deckName, setDeckName] = useState('');
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
@@ -13,6 +13,7 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
   const [importMethod, setImportMethod] = useState<'paste' | 'file'>('paste');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [importFormat, setImportFormat] = useState<'qa' | 'anki'>('qa');
   
   // Check for dark mode on mount and when theme changes
   useEffect(() => {
@@ -53,6 +54,11 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
     setIsPreviewVisible(false);
+    
+    // Auto-detect Anki format
+    if (e.target.value.includes('#notetype:') || e.target.value.includes('#separator:Tab')) {
+      setImportFormat('anki');
+    }
   };
   
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,6 +82,11 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
       if (fileName && !deckName) {
         setDeckName(fileName);
       }
+      
+      // Auto-detect Anki format
+      if (content.includes('#notetype:') || content.includes('#separator:Tab')) {
+        setImportFormat('anki');
+      }
     };
     reader.readAsText(file);
   };
@@ -83,7 +94,22 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
   const handlePreview = () => {
     if (!text) return;
     
-    const cards = importCardsFromText(text);
+    let cards: FlashcardReview[] = [];
+    
+    // Use the appropriate import function based on detected format
+    if (importFormat === 'anki') {
+      cards = importCardsFromAnkiText(text);
+      // If deck name not set by user, try to extract from Anki format
+      if (!deckName && text.includes('#deck:')) {
+        const deckMatch = text.match(/#deck:(.*?)(\n|$)/);
+        if (deckMatch && deckMatch[1]) {
+          setDeckName(deckMatch[1].trim());
+        }
+      }
+    } else {
+      cards = importCardsFromText(text);
+    }
+    
     setPreviewCards(cards);
     setIsPreviewVisible(true);
   };
@@ -91,7 +117,15 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
   const handleImport = () => {
     if (!text || !deckName) return;
     
-    const cards = importCardsFromText(text);
+    let cards: FlashcardReview[];
+    
+    // Use the appropriate import function based on detected format
+    if (importFormat === 'anki') {
+      cards = importCardsFromAnkiText(text);
+    } else {
+      cards = importCardsFromText(text);
+    }
+    
     if (cards.length > 0) {
       // Add deck name to cards
       const cardsWithDeckName = cards.map(card => ({
@@ -105,6 +139,7 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
       setText('');
       setDeckName('');
       setIsPreviewVisible(false);
+      setImportFormat('qa');
     }
   };
   
@@ -179,6 +214,37 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
             </div>
           </div>
           
+          {/* Format Selection */}
+          <div className="mb-4">
+            <div className="flex items-center">
+              <label className="text-sm font-medium mr-4 text-gray-700 dark:text-gray-300">Format:</label>
+              <div className="flex space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="importFormat"
+                    value="qa"
+                    checked={importFormat === 'qa'}
+                    onChange={() => setImportFormat('qa')}
+                    className="form-radio h-4 w-4 text-blue-600"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Q/A Format</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="importFormat"
+                    value="anki"
+                    checked={importFormat === 'anki'}
+                    onChange={() => setImportFormat('anki')}
+                    className="form-radio h-4 w-4 text-blue-600"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Anki Format</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          
           {/* Deck Name */}
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Deck Name</label>
@@ -201,7 +267,9 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
               <textarea
                 value={text}
                 onChange={handleTextChange}
-                placeholder="Paste your flashcards here in Q/A format..."
+                placeholder={importFormat === 'anki' 
+                  ? "Paste your Anki export text here..."
+                  : "Paste your flashcards here in Q/A format..."}
                 className="w-full h-64 p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
@@ -244,7 +312,7 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
                     </label>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Text files (.txt) in Q/A format
+                    Text files (.txt) in {importFormat === 'anki' ? 'Anki format' : 'Q/A format'}
                   </p>
                 </div>
               </div>
@@ -305,7 +373,9 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
                 No valid flashcards found. Please check your format.
               </p>
               <p className="text-sm text-red-500 dark:text-red-400 mt-1">
-                Make sure each card follows the format: Q: question, A: answer
+                Make sure each card follows the format: {importFormat === 'anki' 
+                  ? "columns with Front, Back data"
+                  : "Q: question, A: answer"}
               </p>
             </div>
           )}
