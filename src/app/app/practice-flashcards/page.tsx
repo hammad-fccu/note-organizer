@@ -7,6 +7,7 @@ import ImportDeck from '@/components/flashcards/ImportDeck';
 import { FlashcardReview } from '@/types/flashcards';
 import { v4 as uuidv4 } from 'uuid';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import { GeneratorTab } from '@/components/flashcards/FlashcardGenerator';
 
 enum PracticeMode {
   IMPORT = 'import',
