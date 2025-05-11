@@ -25,8 +25,15 @@ export default function SettingsPage() {
   
   // Load settings from localStorage on mount
   useEffect(() => {
-    const storedApiKey = localStorage.getItem('openRouterApiKey') || '';
-    setOpenRouterApiKey(storedApiKey);
+    const storedApiKey = localStorage.getItem('openRouterApiKey');
+    if (!storedApiKey) {
+      // Set default API key if none exists
+      const defaultKey = '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';
+      localStorage.setItem('openRouterApiKey', defaultKey);
+      setOpenRouterApiKey(defaultKey);
+    } else {
+      setOpenRouterApiKey(storedApiKey);
+    }
     
     const storedDarkMode = localStorage.getItem('darkMode') || 'system';
     setDarkModeSettings(storedDarkMode);
