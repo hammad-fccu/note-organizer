@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SummaryType, AI_MODELS, generateSummary } from '@/utils/aiSummary';
 
 interface NoteSummaryProps {
@@ -17,13 +17,21 @@ export default function NoteSummary({ noteContent, onSummarize, existingSummary 
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summaryType, setSummaryType] = useState<SummaryType>(existingSummary?.type || 'brief');
-  const [apiKey, setApiKey] = useState('');
   const [selectedModel, setSelectedModel] = useState(AI_MODELS[0].id);
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  
+  // Use localStorage for the API key
+  const getApiKey = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('openrouter_api_key') || '';
+    }
+    return '';
+  };
   
   const handleSummarize = async () => {
+    const apiKey = getApiKey();
+    
     if (!apiKey) {
-      setShowApiKeyInput(true);
+      alert('Please add an OpenRouter API key in settings to use summary generation');
       return;
     }
     
@@ -80,7 +88,7 @@ export default function NoteSummary({ noteContent, onSummarize, existingSummary 
         </p>
       )}
       
-      <div className="flex flex-col space-y-3 mb-4">
+      <div className="flex flex-col space-y-3 mb-6">
         <div>
           <label htmlFor="summaryType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Summary Type
@@ -114,29 +122,10 @@ export default function NoteSummary({ noteContent, onSummarize, existingSummary 
             ))}
           </select>
         </div>
-        
-        {showApiKeyInput && (
-          <div>
-            <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              OpenRouter API Key
-            </label>
-            <input
-              id="apiKey"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your OpenRouter API key"
-              className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Get a free API key at <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">openrouter.ai</a>
-            </p>
-          </div>
-        )}
       </div>
       
       {error && (
-        <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-200 rounded-md text-sm">
+        <div className="mb-6 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-200 rounded-md text-sm">
           <p>{error}</p>
         </div>
       )}
@@ -144,7 +133,7 @@ export default function NoteSummary({ noteContent, onSummarize, existingSummary 
       <button
         onClick={handleSummarize}
         disabled={isGenerating}
-        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center"
+        className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center"
       >
         {isGenerating ? (
           <>
