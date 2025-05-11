@@ -8,6 +8,14 @@ export interface SummaryOptions {
   model: string;
 }
 
+// New interface for tag generation
+export interface TagGenerationOptions {
+  text: string;
+  title: string;
+  apiKey: string;
+  model: string;
+}
+
 // Available AI models
 export const AI_MODELS = [
   { id: 'openai/gpt-3.5-turbo', name: 'OpenAI GPT-3.5 Turbo (Free)' },
@@ -111,6 +119,77 @@ export async function generateSummary({ text, type, model, apiKey }: SummaryOpti
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Error generating summary: ${error.message}`);
+    }
+    throw new Error('Unknown error occurred');
+  }
+}
+
+// Function to generate tags using LLMs
+export async function generateTags({ text, title, model, apiKey }: TagGenerationOptions): Promise<string[]> {
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+  
+  // Truncate text if it's too long
+  const maxTextLength = 10000;
+  const truncatedText = text.length > maxTextLength 
+    ? text.substring(0, maxTextLength) + "... (text truncated due to length)"
+    : text;
+  
+  // Create the prompt for tag generation
+  const prompt = `Please analyze the following note titled "${title}" and generate 3-7 relevant tags or keywords that best categorize this content. Tags should be single words or short phrases (max 2-3 words) that capture the main topics, concepts, and themes. Return only the tags separated by commas without any other text or explanation.\n\nNote content:\n${truncatedText}`;
+  
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+        "HTTP-Referer": window.location.href,
+        "X-Title": "Smart Note Organizer"
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ]
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || response.statusText || "Unknown error occurred");
+    }
+    
+    const data = await response.json();
+    
+    // Extract response text
+    let tagsText = '';
+    if (data.choices && data.choices.length > 0) {
+      if (data.choices[0].message && data.choices[0].message.content) {
+        tagsText = data.choices[0].message.content.trim();
+      } else if (data.choices[0].text) {
+        tagsText = data.choices[0].text.trim();
+      }
+    }
+    
+    if (!tagsText) {
+      throw new Error("The model returned an empty response");
+    }
+    
+    // Process the response to extract clean tags
+    // Split by commas, remove empty entries, and trim whitespace
+    const tags = tagsText.split(',')
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0);
+    
+    return tags;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error generating tags: ${error.message}`);
     }
     throw new Error('Unknown error occurred');
   }

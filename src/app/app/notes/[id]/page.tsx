@@ -8,6 +8,9 @@ import NoteSummary from '@/components/NoteSummary';
 import NoteTabs from '@/components/NoteTabs';
 import { SummaryType } from '@/utils/aiSummary';
 
+// Add these imports for the API call
+import { generateTags } from '@/utils/aiSummary';
+
 interface NotePageProps {
   params: {
     id: string;
@@ -31,6 +34,8 @@ export default function NotePage({ params }: NotePageProps) {
     type: SummaryType;
     createdAt: string;
   } | undefined>(undefined);
+  // Add state for tag generation loading
+  const [isGeneratingTags, setIsGeneratingTags] = useState(false);
   
   // Load note data
   useEffect(() => {
@@ -83,6 +88,47 @@ export default function NotePage({ params }: NotePageProps) {
     setSummary(newSummary);
   };
 
+  // Add generate tags handler
+  const handleGenerateTags = async () => {
+    if (!content || content.trim().length === 0) {
+      alert('Please add some content to your note before generating tags');
+      return;
+    }
+    
+    setIsGeneratingTags(true);
+    
+    try {
+      // Use the default model and API key - in a real app you'd get these from settings
+      // For demo we're mocking this functionality
+      const model = 'google/gemini-2.0-flash-exp:free';
+      const apiKey = localStorage.getItem('openrouter_api_key') || '';
+      
+      if (!apiKey) {
+        alert('Please add an OpenRouter API key in settings to use tag generation');
+        setIsGeneratingTags(false);
+        return;
+      }
+      
+      const generatedTags = await generateTags({
+        text: content,
+        title: title || 'Untitled Note',
+        model,
+        apiKey
+      });
+      
+      // If we have existing tags, merge them with the generated ones
+      const existingTags = tags ? tags.split(',').map(t => t.trim()).filter(t => t !== '') : [];
+      const mergedTags = [...new Set([...existingTags, ...generatedTags])];
+      
+      setTags(mergedTags.join(', '));
+    } catch (error) {
+      console.error('Failed to generate tags:', error);
+      alert('Failed to generate tags. Please try again later.');
+    } finally {
+      setIsGeneratingTags(false);
+    }
+  };
+
   // Get current folder name
   const currentFolder = folderId ? folders.find(f => f.id === folderId) : null;
 
@@ -98,10 +144,10 @@ export default function NotePage({ params }: NotePageProps) {
         </div>
       </div>
       
-      {tags && (
+      {(tags || content) && (
         <div className="mb-4">
           <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tags:</h3>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             {tags.split(',').map((tag, index) => (
               <span
                 key={index}
@@ -110,6 +156,32 @@ export default function NotePage({ params }: NotePageProps) {
                 {tag.trim()}
               </span>
             ))}
+            <button
+              onClick={() => {
+                setIsEditing(true);
+                setTimeout(handleGenerateTags, 100);
+              }}
+              disabled={isGeneratingTags || !content}
+              className={`px-3 py-1 bg-gray-800 text-blue-400 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all hover:shadow-[0_0_12px_rgba(59,130,246,0.6)] ${isGeneratingTags ? 'opacity-50 cursor-not-allowed' : ''}`}
+              title="Auto-generate tags based on content"
+            >
+              {isGeneratingTags ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Generating...
+                </span>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Generate Tags
+                </>
+              )}
+            </button>
           </div>
         </div>
       )}
@@ -258,17 +330,50 @@ export default function NotePage({ params }: NotePageProps) {
             </div>
             
             <div className="mb-4">
-              <label htmlFor="tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Tags (comma-separated)
-              </label>
-              <input
-                id="tags"
-                type="text"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="e.g. research, science, biology"
-                className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-              />
+              <div className="flex justify-between items-center mb-1">
+                <label htmlFor="tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Tags (comma-separated)
+                </label>
+                <button
+                  onClick={() => {
+                    setIsEditing(true);
+                    setTimeout(handleGenerateTags, 100);
+                  }}
+                  disabled={isGeneratingTags || !content}
+                  className={`px-3 py-1 bg-gray-800 text-blue-400 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all hover:shadow-[0_0_12px_rgba(59,130,246,0.6)] ${isGeneratingTags ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  title="Auto-generate tags based on content"
+                >
+                  {isGeneratingTags ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Generating...
+                    </span>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Generate Tags
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="mt-3">
+                <input
+                  id="tags"
+                  type="text"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  placeholder="e.g. research, science, biology"
+                  className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Click "Generate Tags" to automatically create relevant tags based on your note content.
+                </p>
+              </div>
             </div>
             
             <div className="mb-4">
