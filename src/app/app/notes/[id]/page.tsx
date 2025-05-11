@@ -277,8 +277,25 @@ export default function NotePage({ params }: NotePageProps) {
       
       {/* Always show the Tags section, even when empty */}
       <div className="mb-4">
-        <div className="flex justify-between items-center mb-2">
+        <div className="mb-2">
           <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Tags:</h3>
+        </div>
+        <div className="flex justify-between items-start gap-2">
+          <div className="flex-1 flex flex-wrap gap-2">
+            {tags ? tags.split(',').map((tag, index) => (
+              tag.trim() && (
+                <span
+                  key={index}
+                  className="px-3 py-1 rounded-full text-sm text-white"
+                  style={getTagStyle(tag.trim())}
+                >
+                  {tag.trim()}
+                </span>
+              )
+            )) : (
+              <span className="text-sm text-gray-500 dark:text-gray-400">No tags yet. Click "Generate Tags" to create tags based on your note content.</span>
+            )}
+          </div>
           <button
             onClick={() => {
               handleGenerateTags().then(() => {
@@ -287,7 +304,7 @@ export default function NotePage({ params }: NotePageProps) {
               }).catch(err => console.error('Tag generation error:', err));
             }}
             disabled={isGeneratingTags || !content}
-            className={`px-3 py-1 bg-gray-800 text-blue-400 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all hover:shadow-[0_0_12px_rgba(59,130,246,0.6)] ${isGeneratingTags ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-3 py-1 bg-gray-800 text-blue-400 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all hover:shadow-[0_0_12px_rgba(59,130,246,0.6)] min-w-fit ${isGeneratingTags ? 'opacity-50 cursor-not-allowed' : ''}`}
             title="Generate or enhance tags based on note content"
           >
             {isGeneratingTags ? (
@@ -307,21 +324,6 @@ export default function NotePage({ params }: NotePageProps) {
               </>
             )}
           </button>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {tags ? tags.split(',').map((tag, index) => (
-            tag.trim() && (
-              <span
-                key={index}
-                className="px-3 py-1 rounded-full text-sm text-white"
-                style={getTagStyle(tag.trim())}
-              >
-                {tag.trim()}
-              </span>
-            )
-          )) : (
-            <span className="text-sm text-gray-500 dark:text-gray-400">No tags yet. Click "Generate Tags" to create tags based on your note content.</span>
-          )}
         </div>
       </div>
       
