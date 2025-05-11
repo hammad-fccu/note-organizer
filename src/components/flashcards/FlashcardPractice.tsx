@@ -169,19 +169,7 @@ export default function FlashcardPractice() {
       
       {/* Card Container */}
       <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-auto relative">
-        {/* Tags */}
-        {currentCard.tags && currentCard.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-4 max-w-xl w-full justify-center">
-            {currentCard.tags.map((tag, index) => (
-              <span 
-                key={index} 
-                className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* Tags - Removing this section as requested */}
         
         {/* Flashcard */}
         <div
