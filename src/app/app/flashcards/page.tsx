@@ -107,22 +107,6 @@ export default function FlashcardsPage() {
           modelName={cardType}
         />
       </div>
-      
-      {/* Information panel */}
-      {selectedNote && (
-        <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <h3 className="font-medium mb-2 text-blue-800 dark:text-blue-300">Selected Note Information</h3>
-          <div className="text-sm text-blue-700 dark:text-blue-300">
-            <p><span className="font-medium">Title:</span> {selectedNote.title}</p>
-            <p><span className="font-medium">Length:</span> {selectedNote.content.length} characters</p>
-            {selectedNote.tags && selectedNote.tags.length > 0 && (
-              <p>
-                <span className="font-medium">Tags:</span> {selectedNote.tags.join(', ')}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 } 
