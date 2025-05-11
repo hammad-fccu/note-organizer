@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { SummaryType, AI_MODELS, generateSummary } from '@/utils/aiSummary';
 import { Copy, Check } from 'lucide-react';
+import InfoModal from '@/components/InfoModal';
 
 interface NoteSummaryProps {
   noteContent: string;
@@ -19,6 +20,8 @@ export default function NoteSummary({ noteContent, onSummarize, existingSummary 
   const [error, setError] = useState<string | null>(null);
   const [summaryType, setSummaryType] = useState<SummaryType>(existingSummary?.type || 'brief');
   const [selectedModel, setSelectedModel] = useState(AI_MODELS[0].id);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [infoModalContent, setInfoModalContent] = useState({ title: '', message: '' });
   
   // Use localStorage for the API key
   const getApiKey = () => {
@@ -32,7 +35,11 @@ export default function NoteSummary({ noteContent, onSummarize, existingSummary 
     const apiKey = getApiKey();
     
     if (!apiKey) {
-      alert('Please add an OpenRouter API key in settings to use summary generation');
+      setInfoModalContent({
+        title: 'API Key Required',
+        message: 'Please add an OpenRouter API key in settings to use summary generation. You can add your API key in the Settings page.'
+      });
+      setShowInfoModal(true);
       return;
     }
     
@@ -177,6 +184,14 @@ export default function NoteSummary({ noteContent, onSummarize, existingSummary 
           'Generate Summary'
         )}
       </button>
+
+      {/* Info Modal */}
+      <InfoModal
+        isOpen={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+        title={infoModalContent.title}
+        message={infoModalContent.message}
+      />
     </div>
   );
 } 

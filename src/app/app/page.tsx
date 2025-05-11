@@ -26,7 +26,7 @@ export default function AppDashboard() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-2">Welcome, {session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}!</h1>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
-          This is your Smart Note Organizer dashboard. Import documents, organize notes, and create flashcards.
+          This is your Notematic dashboard. Import documents, organize notes, and create flashcards.
         </p>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

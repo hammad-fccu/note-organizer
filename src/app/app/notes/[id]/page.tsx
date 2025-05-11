@@ -8,6 +8,8 @@ import NoteSummary from '@/components/NoteSummary';
 import NoteTabs from '@/components/NoteTabs';
 import { SummaryType } from '@/utils/aiSummary';
 import { getTagStyle } from '@/utils/tagColors';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import InfoModal from '@/components/InfoModal';
 
 // Add these imports for the API call
 import { generateTags } from '@/utils/aiSummary';
@@ -107,6 +109,9 @@ export default function NotePage({ params }: NotePageProps) {
   const [isGeneratingTags, setIsGeneratingTags] = useState(false);
   // Add state to force re-render when tags update
   const [tagUpdateCount, setTagUpdateCount] = useState(0);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [infoModalContent, setInfoModalContent] = useState({ title: '', message: '' });
   
   // Load note data
   useEffect(() => {
@@ -172,10 +177,12 @@ export default function NotePage({ params }: NotePageProps) {
   };
   
   const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this note?')) {
-      deleteNote(id);
-      router.push('/app/notes');
-    }
+    setShowDeleteModal(true);
+  };
+  
+  const confirmDelete = () => {
+    deleteNote(id);
+    router.push('/app/notes');
   };
   
   const handleToggleFavorite = () => {
@@ -196,7 +203,11 @@ export default function NotePage({ params }: NotePageProps) {
   // Add generate tags handler
   const handleGenerateTags = async () => {
     if (!content || content.trim().length === 0) {
-      alert('Please add some content to your note before generating tags');
+      setInfoModalContent({
+        title: 'No Content',
+        message: 'Please add some content to your note before generating tags'
+      });
+      setShowInfoModal(true);
       return Promise.reject('No content');
     }
     
@@ -205,13 +216,15 @@ export default function NotePage({ params }: NotePageProps) {
     try {
       console.log('Starting tag generation with content:', content.substring(0, 50) + '...');
       
-      // Use the default model and API key - in a real app you'd get these from settings
-      // For demo we're mocking this functionality
       const model = 'google/gemini-2.0-flash-exp:free';
       const apiKey = localStorage.getItem('openRouterApiKey') || '';
       
       if (!apiKey) {
-        alert('Please add an OpenRouter API key in settings to use tag generation');
+        setInfoModalContent({
+          title: 'API Key Required',
+          message: 'Please add an OpenRouter API key in settings to use tag generation. You can add your API key in the Settings page.'
+        });
+        setShowInfoModal(true);
         setIsGeneratingTags(false);
         return Promise.reject('No API key');
       }
@@ -263,8 +276,11 @@ export default function NotePage({ params }: NotePageProps) {
       
       return Promise.resolve();
     } catch (error) {
-      console.error('Failed to generate tags:', error);
-      alert('Failed to generate tags. Please try again later.');
+      setInfoModalContent({
+        title: 'Error',
+        message: 'Failed to generate tags. Please try again later.'
+      });
+      setShowInfoModal(true);
       return Promise.reject(error);
     } finally {
       setIsGeneratingTags(false);
@@ -603,6 +619,25 @@ export default function NotePage({ params }: NotePageProps) {
           </div>
         )}
       </div>
+
+      {/* Info Modal */}
+      <InfoModal
+        isOpen={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+        title={infoModalContent.title}
+        message={infoModalContent.message}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Note"
+        message="Are you sure you want to delete this note? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 } 

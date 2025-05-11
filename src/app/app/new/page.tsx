@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useNotes } from '@/store/NoteStore';
 import { generateTags } from '@/utils/aiSummary';
 import { Zap } from 'lucide-react';
+import InfoModal from '@/components/InfoModal';
 
 // Add a function to normalize and deduplicate tags
 const normalizeTags = (tags: string[]): string[] => {
@@ -30,8 +31,10 @@ const normalizeTags = (tags: string[]): string[] => {
 export default function NewNotePage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [tags, setTags] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const [isGeneratingTags, setIsGeneratingTags] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [infoModalContent, setInfoModalContent] = useState({ title: '', message: '' });
   const router = useRouter();
   const searchParams = useSearchParams();
   const { addNote, getFolderById } = useNotes();
@@ -43,79 +46,69 @@ export default function NewNotePage() {
   const folder = folderId ? getFolderById(folderId) : null;
   const folderName = folder?.name || '';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Create new note
-    const noteData = {
-      title: title.trim() || 'Untitled Note',
-      content,
-      contentHtml: content.replace(/\n/g, '<br>'),
-      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
-      favorite: false,
-      folderId: folderId || undefined,
-    };
-    
-    addNote(noteData);
-    
-    // Navigate to the appropriate page
-    if (folderId) {
-      router.push(`/app/folders/${folderId}`);
-    } else {
-      router.push('/app/notes');
+    if (!title.trim() || !content.trim()) {
+      setInfoModalContent({
+        title: 'Missing Information',
+        message: 'Please provide both a title and content for your note'
+      });
+      setShowInfoModal(true);
+      return;
     }
+
+    const note = {
+      title: title.trim(),
+      content: content.trim(),
+      contentHtml: content.trim().replace(/\n/g, '<br>'),
+      tags,
+      favorite: false,
+      folderId: folderId || undefined
+    };
+
+    addNote(note);
+    router.push('/app/notes');
   };
 
   // Add generate tags handler
   const handleGenerateTags = async () => {
     if (!content || content.trim().length === 0) {
-      alert('Please add some content to your note before generating tags');
+      setInfoModalContent({
+        title: 'No Content',
+        message: 'Please add some content to your note before generating tags'
+      });
+      setShowInfoModal(true);
       return;
     }
-    
+
     setIsGeneratingTags(true);
-    
     try {
-      console.log('Starting tag generation with content:', content.substring(0, 50) + '...');
-      
-      // Use the default model and API key from localStorage
       const model = 'google/gemini-2.0-flash-exp:free';
       const apiKey = localStorage.getItem('openRouterApiKey') || '';
       
       if (!apiKey) {
-        alert('Please add an OpenRouter API key in settings to use tag generation');
+        setInfoModalContent({
+          title: 'API Key Required',
+          message: 'Please add an OpenRouter API key in settings to use tag generation. You can add your API key in the Settings page.'
+        });
+        setShowInfoModal(true);
         setIsGeneratingTags(false);
         return;
       }
-      
+
       const generatedTags = await generateTags({
         text: content,
         title: title || 'Untitled Note',
         model,
         apiKey
       });
-      
-      // Check if we received valid tags
-      if (!generatedTags || !Array.isArray(generatedTags)) {
-        console.error('Invalid or empty tags returned:', generatedTags);
-        throw new Error('Failed to generate valid tags');
-      }
-      
-      console.log('Received generated tags:', generatedTags);
-      
-      // If we have existing tags, merge them with the generated ones
-      const existingTags = tags ? tags.split(',').map(t => t.trim()).filter(t => t !== '') : [];
-      const allTags = [...existingTags, ...generatedTags];
-      
-      // Normalize and deduplicate tags
-      const uniqueTags = normalizeTags(allTags);
-      const newTagsString = uniqueTags.join(', ');
-      
-      // Update local state
-      setTags(newTagsString);
+      setTags(generatedTags);
     } catch (error) {
-      console.error('Failed to generate tags:', error);
-      alert('Failed to generate tags. Please try again later.');
+      setInfoModalContent({
+        title: 'Error',
+        message: 'Failed to generate tags. Please try again later.'
+      });
+      setShowInfoModal(true);
     } finally {
       setIsGeneratingTags(false);
     }
@@ -195,8 +188,8 @@ export default function NewNotePage() {
               <input
                 id="tags"
                 type="text"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
+                value={tags.join(', ')}
+                onChange={(e) => setTags(e.target.value.split(',').map(t => t.trim()).filter(t => t !== ''))}
                 placeholder="e.g. research, science, biology"
                 className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
               />
@@ -224,6 +217,14 @@ export default function NewNotePage() {
           </div>
         </form>
       </div>
+
+      {/* Info Modal */}
+      <InfoModal
+        isOpen={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+        title={infoModalContent.title}
+        message={infoModalContent.message}
+      />
     </div>
   );
 } 

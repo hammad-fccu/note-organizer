@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Flashcard, GeneratorOptions, CardType } from '@/types/flashcards';
 import { v4 as uuidv4 } from 'uuid';
 import { useNotes } from '@/store/NoteStore';
+import InfoModal from '@/components/InfoModal';
 
 interface FlashcardGeneratorProps {
   noteId: string;
@@ -21,6 +22,8 @@ export default function FlashcardGenerator({
   const [maxCards, setMaxCards] = useState<number>(5);
   const [temperature, setTemperature] = useState<number>(0.7);
   const { getNoteById } = useNotes();
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [infoModalContent, setInfoModalContent] = useState({ title: '', message: '' });
   
   // Dynamic prompt template based on card type
   const getDefaultPromptTemplate = (type: CardType) => {
@@ -430,14 +433,22 @@ Return exactly ${options.maxCards} flashcards focusing on the most important con
 
   const handleGenerate = async () => {
     if (!noteId) {
-      alert('Please select a note first');
+      setInfoModalContent({
+        title: 'No Note Selected',
+        message: 'Please select a note first'
+      });
+      setShowInfoModal(true);
       return;
     }
     
     // Check for API key
     const apiKey = localStorage.getItem('openRouterApiKey');
     if (!apiKey) {
-      alert('Please add an OpenRouter API key in settings to use flashcard generation');
+      setInfoModalContent({
+        title: 'API Key Required',
+        message: 'Please add an OpenRouter API key in settings to use flashcard generation. You can add your API key in the Settings page.'
+      });
+      setShowInfoModal(true);
       return;
     }
     
@@ -492,17 +503,23 @@ Return exactly ${options.maxCards} flashcards focusing on the most important con
         }
         
         // If we get here, both attempts failed
-        alert(`No flashcards could be generated. This may be due to:
-- The AI model's response format was unexpected
-- The note content was too short or unclear
-- There was an issue with the API
-
-Please try again with different settings or a different note.`);
+        setInfoModalContent({
+          title: 'Flashcard Generation Failed',
+          message: 'No flashcards could be generated. This may be due to:\n\n' +
+            '- The AI model\'s response format was unexpected\n' +
+            '- The note content was too short or unclear\n' +
+            '- There was an issue with the API\n\n' +
+            'Please try again with different settings or a different note.'
+        });
+        setShowInfoModal(true);
       }
     } catch (error) {
-      console.error('Error in overall flashcard generation process:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(`Failed to generate flashcards: ${errorMessage}\n\nPlease check your API key and try again.`);
+      setInfoModalContent({
+        title: 'Flashcard Generation Failed',
+        message: `Failed to generate flashcards: ${errorMessage}. Please check your API key and try again.`
+      });
+      setShowInfoModal(true);
     } finally {
       setIsGenerating(false);
     }
@@ -622,6 +639,14 @@ Please try again with different settings or a different note.`);
           </button>
         </div>
       </div>
+
+      {/* Info Modal */}
+      <InfoModal
+        isOpen={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+        title={infoModalContent.title}
+        message={infoModalContent.message}
+      />
     </div>
   );
 }

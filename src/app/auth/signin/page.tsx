@@ -47,14 +47,24 @@ export default function SignIn() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white flex flex-col">
       <header className="flex justify-between items-center p-4 max-w-7xl mx-auto w-full">
-        <Link href="/" className="text-2xl font-bold">Smart Note Organizer</Link>
+        <Link href="/" className="flex items-center gap-2 text-2xl font-bold">
+          <div className="w-8 h-8 text-blue-600">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V5C21 3.89543 20.1046 3 19 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M8 7H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M8 12H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M8 17H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <span className="bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">Notematic</span>
+        </Link>
         <ThemeToggle />
       </header>
       
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
           <div className="text-center">
-            <h1 className="text-3xl font-extrabold">Sign In</h1>
+            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">Sign In</h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">Welcome back! Sign in to your account</p>
             <div className="mt-2 text-sm text-blue-600 dark:text-blue-400">
               <p>Test user: test@example.com / password123</p>
@@ -127,7 +137,7 @@ export default function SignIn() {
       </main>
       
       <footer className="p-4 text-center text-gray-600 dark:text-gray-400">
-        <p>© {new Date().getFullYear()} Smart Note Organizer</p>
+        <p>© {new Date().getFullYear()} Notematic</p>
       </footer>
     </div>
   );
