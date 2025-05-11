@@ -3,9 +3,31 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import FileUploader from '@/components/FileUploader';
-import { processFile, createNoteFromProcessedFile, ProcessedFile } from '@/utils/fileProcessing';
+import { processFile, ProcessedFile } from '@/utils/fileProcessing';
 import { useNotes } from '@/store/NoteStore';
 import Link from 'next/link';
+import { generateTags } from '@/utils/aiSummary';
+
+// Add a function to normalize and deduplicate tags (reusing the same function pattern from other pages)
+const normalizeTags = (tags: string[]): string[] => {
+  // Convert all tags to lowercase for comparison
+  const lowercaseTags = tags.map(tag => tag.toLowerCase().trim());
+  
+  // Create a map of lowercase to preferred case (keeping the first occurrence's casing)
+  const uniqueTags = new Map<string, string>();
+  
+  // First pass: exact matches
+  tags.forEach((tag, index) => {
+    const normalizedTag = lowercaseTags[index];
+    // Only add the first occurrence of each tag (keeping original casing)
+    if (!uniqueTags.has(normalizedTag)) {
+      uniqueTags.set(normalizedTag, tag.trim());
+    }
+  });
+  
+  // Return the unique tags with their original casing
+  return Array.from(uniqueTags.values());
+};
 
 export default function ImportPage() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -15,10 +37,13 @@ export default function ImportPage() {
   const [processedFiles, setProcessedFiles] = useState<ProcessedFile[]>([]);
   const [folderId, setFolderId] = useState<string | null>(null);
   const [folderName, setFolderName] = useState<string>('');
+  const [isGeneratingTags, setIsGeneratingTags] = useState(false);
+  const [generatingTagsForFile, setGeneratingTagsForFile] = useState<string | null>(null);
+  const [tagsProgress, setTagsProgress] = useState(0);
   
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { addNote, getFolderById, folders } = useNotes();
+  const { addNote, getFolderById, folders, updateNoteTags } = useNotes();
 
   // Get folderId from query params if available
   useEffect(() => {
@@ -31,6 +56,17 @@ export default function ImportPage() {
       }
     }
   }, [searchParams, getFolderById]);
+
+  // Add some information about API key status
+  const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    // Check if API key is set
+    if (typeof window !== 'undefined') {
+      const apiKey = localStorage.getItem('openRouterApiKey') || '';
+      setHasApiKey(!!apiKey);
+    }
+  }, []);
 
   const handleFilesAccepted = async (files: File[]) => {
     if (files.length === 0) return;
@@ -68,18 +104,95 @@ export default function ImportPage() {
     }
   };
 
-  const handleImportAll = () => {
-    // Import all processed files as notes
-    processedFiles.forEach(processedFile => {
-      const noteData = createNoteFromProcessedFile(processedFile);
-      // Add folderId if we're in a folder context
-      if (folderId) {
-        noteData.folderId = folderId;
+  // Function to safely generate tags without throwing errors
+  const safelyGenerateTags = async (noteId: string, fileContent: string, fileTitle: string): Promise<void> => {
+    try {
+      // Get API key, checking both possible storage keys
+      const apiKey = localStorage.getItem('openRouterApiKey') || '';
+      
+      if (!apiKey || fileContent.length < 50) {
+        console.log('Skipping tag generation: ' + 
+          (!apiKey ? 'No API key available' : 'Content too short'));
+        return;
       }
-      addNote(noteData);
-    });
+      
+      // Set the default model
+      const model = 'google/gemini-2.0-flash-exp:free';
+      
+      // Truncate content if it's very long to improve performance
+      const maxContentLength = 8000;
+      const textToProcess = fileContent.length > maxContentLength 
+        ? fileContent.substring(0, maxContentLength) + "... (content truncated for tag generation)"
+        : fileContent;
+      
+      console.log(`Generating tags for "${fileTitle}" (length: ${textToProcess.length})`);
+      
+      // Generate tags using the model
+      const generatedTags = await generateTags({
+        text: textToProcess,
+        title: fileTitle,
+        model,
+        apiKey
+      });
+      
+      // Validate the tags array
+      if (!generatedTags || !Array.isArray(generatedTags)) {
+        console.log(`Invalid tags result for ${fileTitle}:`, generatedTags);
+        return;
+      }
+      
+      // Only update if we actually got tags back
+      if (generatedTags.length > 0) {
+        // Normalize and deduplicate tags
+        const uniqueTags = normalizeTags(generatedTags);
+        console.log(`Tags generated for ${fileTitle}:`, uniqueTags);
+        
+        // Update the note's tags in the store
+        updateNoteTags(noteId, uniqueTags);
+      } else {
+        console.log(`No tags generated for ${fileTitle}`);
+      }
+    } catch (error) {
+      // Just log the error but don't throw - we don't want to disrupt the import process
+      console.error(`Tag generation error for ${fileTitle}:`, error);
+    }
+  };
+
+  const handleImportAll = async () => {
+    // Import all processed files as notes immediately
+    for (const processedFile of processedFiles) {
+      try {
+        // Create basic note object
+        const basicNoteData = {
+          title: processedFile.title,
+          content: processedFile.content,
+          contentHtml: processedFile.content.replace(/\n/g, '<br>'),
+          tags: [], // Start with empty tags
+          favorite: false,
+          sourceFileName: processedFile.sourceFileName,
+          sourceFileType: processedFile.sourceFileType,
+          folderId: folderId || undefined,
+        };
+        
+        // Add note immediately
+        const noteId = addNote(basicNoteData);
+        
+        // If API key exists, start tag generation but don't wait for it
+        if (typeof window !== 'undefined') {
+          // Fire and forget - don't await this
+          safelyGenerateTags(noteId, processedFile.content, processedFile.title)
+            .catch(err => {
+              // This should never happen due to the error handling in safelyGenerateTags,
+              // but just in case there's some uncaught error
+              console.error(`Unhandled error in tag generation for ${processedFile.title}:`, err);
+            });
+        }
+      } catch (error) {
+        console.error(`Error creating note from file ${processedFile.sourceFileName}:`, error);
+      }
+    }
     
-    // Navigate back to the appropriate page
+    // Navigate immediately, don't wait for tag generation
     if (folderId) {
       router.push(`/app/folders/${folderId}`);
     } else {
@@ -171,7 +284,17 @@ export default function ImportPage() {
               <li>OCR works best with clear, well-scanned documents</li>
               <li>Complex formatting may be lost during import</li>
               <li>You can edit the extracted text after import</li>
-              <li>The app will attempt to generate relevant tags automatically</li>
+              <li>
+                {hasApiKey === null ? (
+                  "Checking API key status..."
+                ) : hasApiKey ? (
+                  "The app will automatically generate relevant tags based on content"
+                ) : (
+                  <span className="text-amber-600 dark:text-amber-400">
+                    Add an OpenRouter API key in settings to enable automatic tag generation
+                  </span>
+                )}
+              </li>
             </ul>
           </div>
         </div>
@@ -201,6 +324,14 @@ export default function ImportPage() {
                 </div>
               ))}
             </div>
+            
+            {hasApiKey && (
+              <div className="mt-4 mb-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  <span className="font-medium">Note:</span> Tags will be automatically generated in the background after import. You can continue using the app while this happens.
+                </p>
+              </div>
+            )}
             
             <div className="mt-6 flex space-x-4">
               <button

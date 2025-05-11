@@ -126,8 +126,21 @@ export async function generateSummary({ text, type, model, apiKey }: SummaryOpti
 
 // Function to generate tags using LLMs
 export async function generateTags({ text, title, model, apiKey }: TagGenerationOptions): Promise<string[]> {
+  console.log('generateTags called with:', { 
+    textLength: text?.length || 0, 
+    title: title || 'Untitled', 
+    model: model || 'default', 
+    hasApiKey: !!apiKey 
+  });
+
   if (!apiKey) {
-    throw new Error('API key is required');
+    console.error('API key is required but none provided');
+    return []; // Return empty array instead of throwing error
+  }
+  
+  if (!text || text.trim().length === 0) {
+    console.error('Text content is empty or undefined');
+    return []; // Return empty tags array instead of throwing error
   }
   
   // Truncate text if it's too long
@@ -137,60 +150,114 @@ export async function generateTags({ text, title, model, apiKey }: TagGeneration
     : text;
   
   // Create the prompt for tag generation
-  const prompt = `Please analyze the following note titled "${title}" and generate 3-7 relevant tags or keywords that best categorize this content. Tags should be single words or short phrases (max 2-3 words) that capture the main topics, concepts, and themes. Return only the tags separated by commas without any other text or explanation.\n\nNote content:\n${truncatedText}`;
+  const safeTitle = title || 'Untitled';
+  const prompt = `Please analyze the following note titled "${safeTitle}" and generate 3-7 relevant tags or keywords that best categorize this content. Tags should be single words or short phrases (max 2-3 words) that capture the main topics, concepts, and themes. Return only the tags separated by commas without any other text or explanation.\n\nNote content:\n${truncatedText}`;
+  
+  console.log(`Sending request to OpenRouter API with model: ${model}`);
   
   try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": window.location.href,
-        "X-Title": "Smart Note Organizer"
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ]
-      })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || response.statusText || "Unknown error occurred");
+    // Safe URL handling
+    let referer;
+    try {
+      referer = typeof window !== 'undefined' ? 
+        (window.location?.href || 'http://localhost') : 
+        'http://localhost';
+    } catch (err) {
+      console.error('Error getting window location:', err);
+      referer = 'http://localhost';
     }
     
-    const data = await response.json();
+    let response;
+    try {
+      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+          "HTTP-Referer": referer,
+          "X-Title": "Smart Note Organizer"
+        },
+        body: JSON.stringify({
+          model: model || 'google/gemini-2.0-flash-exp:free', // Use default model if not specified
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ]
+        })
+      });
+    } catch (fetchErr) {
+      console.error('Fetch error in generateTags:', fetchErr);
+      return [];
+    }
+    
+    if (!response) {
+      console.error('No response received from API');
+      return []; // Return empty array instead of throwing
+    }
+    
+    console.log(`Response status: ${response.status}`);
+    
+    if (!response.ok) {
+      let errorMessage = `API error (${response.status}): `;
+      
+      try {
+        const errorText = await response.text();
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage += errorData.error?.message || response.statusText || "Unknown error occurred";
+          console.error('API error response:', errorData);
+        } catch {
+          errorMessage += errorText || response.statusText || "Unknown error occurred";
+          console.error('API error (non-JSON):', errorText);
+        }
+      } catch (err) {
+        console.error('Failed to read error response:', err);
+        errorMessage += 'Failed to read error response';
+      }
+      
+      console.error(errorMessage);
+      return []; // Return empty array instead of throwing
+    }
+    
+    let data;
+    try {
+      data = await response.json();
+      console.log('API response data:', data);
+    } catch (err) {
+      console.error('Failed to parse JSON response:', err);
+      return []; // Return empty array instead of throwing
+    }
     
     // Extract response text
     let tagsText = '';
-    if (data.choices && data.choices.length > 0) {
-      if (data.choices[0].message && data.choices[0].message.content) {
+    if (data?.choices && data.choices.length > 0) {
+      if (data.choices[0]?.message && data.choices[0].message.content) {
         tagsText = data.choices[0].message.content.trim();
-      } else if (data.choices[0].text) {
+      } else if (data.choices[0]?.text) {
         tagsText = data.choices[0].text.trim();
       }
     }
     
     if (!tagsText) {
-      throw new Error("The model returned an empty response");
+      console.error('Empty response from API:', data);
+      return [];
     }
+    
+    console.log('Raw tags response:', tagsText);
     
     // Process the response to extract clean tags
     // Split by commas, remove empty entries, and trim whitespace
     const tags = tagsText.split(',')
-      .map(tag => tag.trim())
-      .filter(tag => tag.length > 0);
+      .map(tag => (tag || '').trim())
+      .filter(tag => tag !== '');
     
+    console.log('Final processed tags:', tags);
     return tags;
   } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Error generating tags: ${error.message}`);
-    }
-    throw new Error('Unknown error occurred');
+    console.error('Error in generateTags:', error);
+    // Just return empty array instead of throwing
+    return [];
   }
 } 

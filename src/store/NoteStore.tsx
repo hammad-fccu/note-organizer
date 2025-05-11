@@ -6,7 +6,7 @@ import { SummaryType } from '@/utils/aiSummary';
 interface NoteContextType {
   notes: Note[];
   folders: Folder[];
-  addNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => Note;
+  addNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => string;
   updateNote: (id: string, updates: Partial<Note>) => void;
   deleteNote: (id: string) => void;
   getNoteById: (id: string) => Note | undefined;
@@ -17,6 +17,7 @@ interface NoteContextType {
   getFavorites: () => Note[];
   getAllTags: () => string[];
   addSummaryToNote: (id: string, summary: string, type: SummaryType) => void;
+  updateNoteTags: (id: string, tags: string[]) => void;
   
   // Folder management
   addFolder: (name: string, parentId?: string, color?: string) => Folder;
@@ -87,7 +88,7 @@ export function NoteProvider({ children }: NoteProviderProps) {
     };
     
     setNotes(prevNotes => [...prevNotes, newNote]);
-    return newNote;
+    return newNote.id;
   };
   
   const updateNote = (id: string, updates: Partial<Note>) => {
@@ -152,6 +153,16 @@ export function NoteProvider({ children }: NoteProviderProps) {
         createdAt: new Date().toISOString()
       } 
     });
+  };
+  
+  const updateNoteTags = (id: string, tags: string[]) => {
+    setNotes(prevNotes => 
+      prevNotes.map(note => 
+        note.id === id 
+          ? { ...note, tags, updatedAt: new Date().toISOString() } 
+          : note
+      )
+    );
   };
   
   // Folder management functions
@@ -220,6 +231,7 @@ export function NoteProvider({ children }: NoteProviderProps) {
     getFavorites,
     getAllTags,
     addSummaryToNote,
+    updateNoteTags,
     addFolder,
     updateFolder,
     deleteFolder,

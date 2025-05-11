@@ -223,6 +223,12 @@ export default function NotePage({ params }: NotePageProps) {
         apiKey
       });
       
+      // Check if we received valid tags
+      if (!generatedTags || !Array.isArray(generatedTags)) {
+        console.error('Invalid or empty tags returned:', generatedTags);
+        throw new Error('Failed to generate valid tags');
+      }
+      
       console.log('Received generated tags:', generatedTags);
       
       // If we have existing tags, merge them with the generated ones
@@ -252,13 +258,10 @@ export default function NotePage({ params }: NotePageProps) {
         tags: cleanTags,
       });
       
-      // Reload note data to ensure UI is in sync with store
-      const updatedNote = getNoteById(id);
-      if (updatedNote) {
-        console.log('Updated note tags from store:', updatedNote.tags);
-      }
+      // Force a refresh of tag display
+      setTagUpdateCount(prev => prev + 1);
       
-      return Promise.resolve(cleanTags);
+      return Promise.resolve();
     } catch (error) {
       console.error('Failed to generate tags:', error);
       alert('Failed to generate tags. Please try again later.');

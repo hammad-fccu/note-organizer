@@ -1,6 +1,7 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { createWorker } from 'tesseract.js';
 import { Note } from '@/types/note';
+import { generateTags } from '@/utils/aiSummary';
 
 // Set the worker source for PDF.js
 if (typeof window !== 'undefined') {
@@ -316,9 +317,58 @@ export async function processFile(file: File): Promise<ProcessedFile> {
 /**
  * Create a note object from a processed file
  */
-export function createNoteFromProcessedFile(processedFile: ProcessedFile): Omit<Note, 'id' | 'createdAt' | 'updatedAt'> {
+export async function createNoteFromProcessedFile(processedFile: ProcessedFile): Promise<Omit<Note, 'id' | 'createdAt' | 'updatedAt'>> {
   // Try to auto-generate tags based on content
-  const autoTags = generateTagsFromContent(processedFile.content);
+  let autoTags: string[] = [];
+  
+  // First check if we have an API key for LLM-based generation
+  if (typeof window !== 'undefined') {
+    try {
+      const apiKey = localStorage.getItem('openRouterApiKey') || '';
+      console.log(`API key found: ${apiKey ? 'Yes' : 'No'}`);
+      
+      if (apiKey && processedFile.content && processedFile.content.length >= 50) {
+        console.log(`Starting LLM tag generation for "${processedFile.title}"`);
+        console.log(`Content length: ${processedFile.content.length} characters`);
+        
+        // Truncate content if it's very long to improve performance
+        const maxContentLength = 5000;
+        const textToProcess = processedFile.content.length > maxContentLength 
+          ? processedFile.content.substring(0, maxContentLength) + "... (content truncated for tag generation)"
+          : processedFile.content;
+        
+        try {
+          // Use the default model
+          const model = 'google/gemini-2.0-flash-exp:free';
+          
+          // Use the LLM-based tag generation
+          console.log(`Calling generateTags with model: ${model}`);
+          autoTags = await generateTags({
+            text: textToProcess,
+            title: processedFile.title,
+            model,
+            apiKey
+          });
+          
+          // Verify we got a valid array of tags
+          if (!autoTags || !Array.isArray(autoTags)) {
+            console.error("Invalid tags returned from generateTags:", autoTags);
+            autoTags = [];
+          } else {
+            console.log(`LLM successfully generated ${autoTags.length} tags:`, autoTags);
+          }
+        } catch (error) {
+          console.error("Failed to generate tags with LLM:", error);
+          // Fallback to empty tags array
+          autoTags = [];
+        }
+      } else {
+        console.log(`Skipping tag generation: API Key exists: ${!!apiKey}, Content length: ${processedFile.content?.length || 0}`);
+      }
+    } catch (err) {
+      console.error("Error accessing localStorage or processing tags:", err);
+    }
+  }
   
   return {
     title: processedFile.title,
@@ -329,53 +379,4 @@ export function createNoteFromProcessedFile(processedFile: ProcessedFile): Omit<
     sourceFileName: processedFile.sourceFileName,
     sourceFileType: processedFile.sourceFileType,
   };
-}
-
-/**
- * Auto-generate tags from content
- */
-function generateTagsFromContent(content: string): string[] {
-  console.log("Generating tags from content");
-  // If content is very short, don't try to generate tags
-  if (!content || content.length < 50) {
-    console.log("Content too short for tag generation");
-    return ["untagged"];
-  }
-  
-  // This is a simple implementation
-  // In a real app, you would use NLP or machine learning for more intelligent tagging
-  const words = content.toLowerCase().split(/\s+/);
-  const commonWords = new Set([
-    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 
-    'for', 'with', 'by', 'of', 'from', 'this', 'that', 'these', 
-    'those', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 
-    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 
-    'shall', 'should', 'can', 'could', 'may', 'might'
-  ]);
-  
-  // Count word frequency and filter out common words and short words
-  const wordCounts: Record<string, number> = {};
-  words.forEach(word => {
-    const cleanWord = word.replace(/[^\w]/g, '');
-    if (cleanWord.length >= 4 && !commonWords.has(cleanWord)) {
-      wordCounts[cleanWord] = (wordCounts[cleanWord] || 0) + 1;
-    }
-  });
-  
-  // Convert to array and sort by frequency
-  const sortedWords = Object.entries(wordCounts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([word]) => word)
-    .slice(0, 5); // Take top 5 words as tags
-  
-  const tags = [...new Set(sortedWords)]; // Deduplicate
-  
-  console.log(`Generated ${tags.length} tags:`, tags);
-  
-  // If no tags could be generated, add a default tag
-  if (tags.length === 0) {
-    return ["untagged"];
-  }
-  
-  return tags;
 } 

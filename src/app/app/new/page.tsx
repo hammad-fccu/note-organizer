@@ -95,6 +95,12 @@ export default function NewNotePage() {
         apiKey
       });
       
+      // Check if we received valid tags
+      if (!generatedTags || !Array.isArray(generatedTags)) {
+        console.error('Invalid or empty tags returned:', generatedTags);
+        throw new Error('Failed to generate valid tags');
+      }
+      
       console.log('Received generated tags:', generatedTags);
       
       // If we have existing tags, merge them with the generated ones
