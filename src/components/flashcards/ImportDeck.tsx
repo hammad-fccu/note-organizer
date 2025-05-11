@@ -73,20 +73,29 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
       {/* Instructions Panel */}
-      <div className="bg-blue-50 dark:bg-blue-900/30 p-4 border-b border-blue-100 dark:border-blue-800">
-        <h3 className="text-md font-medium mb-2 text-blue-700 dark:text-blue-300">How to Import Flashcards</h3>
-        <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">
+      <div className="bg-blue-50 dark:bg-blue-900/40 p-4 border-b border-blue-200 dark:border-blue-800">
+        <h3 className="text-md font-semibold mb-2 text-blue-900 dark:text-blue-300">How to Import Flashcards</h3>
+        <p className="text-sm text-blue-800 dark:text-blue-300 mb-2">
           Import flashcards in Q&A format from a text file or paste them directly.
         </p>
-        <div className="text-xs text-blue-600 dark:text-blue-400">
-          <p className="font-medium">Supported format:</p>
-          <pre className="mt-1 p-2 bg-white dark:bg-gray-800 rounded border border-blue-200 dark:border-blue-800 overflow-x-auto">
-            Q: What is the capital of France?{'\n'}
-            A: Paris{'\n'}
-            {'\n'}
-            Q: What is the largest planet in our solar system?{'\n'}
-            A: Jupiter
-          </pre>
+        <div className="text-xs text-blue-800 dark:text-blue-300">
+          <p className="font-medium mb-1">Supported format:</p>
+          <div className="mt-1 p-3 bg-white dark:bg-gray-800 rounded border border-blue-200 dark:border-blue-700 overflow-x-auto shadow-sm">
+            <div className="text-gray-800 dark:text-gray-200 font-mono">
+              <div className="mb-1">
+                <span className="text-green-600 dark:text-green-400 font-semibold">Q:</span> What is the capital of France?
+              </div>
+              <div className="mb-3">
+                <span className="text-blue-600 dark:text-blue-400 font-semibold">A:</span> Paris
+              </div>
+              <div className="mb-1">
+                <span className="text-green-600 dark:text-green-400 font-semibold">Q:</span> What is the largest planet in our solar system?
+              </div>
+              <div>
+                <span className="text-blue-600 dark:text-blue-400 font-semibold">A:</span> Jupiter
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
