@@ -12,6 +12,34 @@ enum PracticeMode {
   PRACTICE = 'practice'
 }
 
+// Function to export deck to Anki format
+const exportDeckToAnki = (cards: FlashcardReview[], deckName: string) => {
+  // Anki format header with tab separator
+  let ankiText = '#separator:tab\n';
+  ankiText += '#html:true\n';
+  ankiText += '#columns:front\tback\ttags\n';
+  
+  // Add each card
+  cards.forEach(card => {
+    const front = card.front.replace(/\t/g, ' '); // Replace tabs with spaces to avoid breaking the format
+    const back = card.back.replace(/\t/g, ' ');
+    const tags = card.tags.join(' ');
+    
+    ankiText += `${front}\t${back}\t${tags}\n`;
+  });
+  
+  // Create a blob and download link
+  const blob = new Blob([ankiText], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${deckName.replace(/\s+/g, '_')}_anki_export.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 export default function PracticeFlashcardsPage() {
   const { reviewCards, loadPracticeCards, startSession, endSession } = useFlashcards();
   const [mode, setMode] = useState<PracticeMode>(PracticeMode.IMPORT);
@@ -237,15 +265,27 @@ export default function PracticeFlashcardsPage() {
                             <h3 className="font-medium text-lg">
                               {deckId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                             </h3>
-                            <button 
-                              onClick={() => handleDeleteDeck(deckId)} 
-                              className="text-gray-400 hover:text-red-500 transition-colors"
-                              aria-label="Delete deck"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => exportDeckToAnki(cards, deckId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '))}
+                                className="text-gray-400 hover:text-blue-500 transition-colors"
+                                aria-label="Export deck"
+                                title="Export as Anki format"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteDeck(deckId)} 
+                                className="text-gray-400 hover:text-red-500 transition-colors"
+                                aria-label="Delete deck"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                           
                           <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -316,7 +356,7 @@ export default function PracticeFlashcardsPage() {
       ) : (
         <div className="h-full relative">
           <FlashcardPractice />
-          <div className="absolute top-4 right-4">
+          <div className="fixed bottom-6 right-6">
             <button 
               onClick={handleEndPractice}
               className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center gap-2 transition-colors shadow-sm hover:shadow"

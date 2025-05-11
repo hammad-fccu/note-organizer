@@ -105,8 +105,8 @@ export default function FlashcardPractice() {
   
   return (
     <div className="h-full flex flex-col">
-      {/* Progress Header */}
-      <div className="bg-white dark:bg-gray-800 p-4 border-b border-gray-200 dark:border-gray-700">
+      {/* Progress Header - Fixed at top */}
+      <div className="bg-white dark:bg-gray-800 p-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-lg font-semibold">Flashcards</h1>
           <div className="flex items-center gap-2">
@@ -115,8 +115,8 @@ export default function FlashcardPractice() {
               title="Keyboard shortcuts"
               onClick={() => setShowKeyboardShortcuts(!showKeyboardShortcuts)}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </button>
             <div className="text-sm text-gray-600 dark:text-gray-300 font-medium">
@@ -167,132 +167,132 @@ export default function FlashcardPractice() {
         )}
       </div>
       
-      {/* Card Container */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-auto relative">
-        {/* Tags - Removing this section as requested */}
-        
-        {/* Flashcard */}
-        <div
-          className={`w-full max-w-xl aspect-[3/2] cursor-pointer rounded-xl mb-8 ${
-            isTransitioning ? 'pointer-events-none' : ''
-          }`}
-          onClick={() => {
-            setIsTransitioning(true);
-            flipCard();
-            setTimeout(() => setIsTransitioning(false), 400);
-          }}
-          style={{
-            perspective: '1000px',
-          }}
-          aria-label={isFlipped ? "Click to see question" : "Click to see answer"}
-        >
+      {/* Card Container with fixed padding */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="min-h-full py-8 flex flex-col items-center">
+          {/* Flashcard */}
           <div
-            className={`relative w-full h-full transition-transform duration-400 transform-style-preserve-3d ${
-              isFlipped ? 'rotate-y-180' : ''
+            className={`w-full max-w-xl aspect-[3/2] cursor-pointer rounded-xl mb-8 ${
+              isTransitioning ? 'pointer-events-none' : ''
             }`}
-            aria-live="polite"
+            onClick={() => {
+              setIsTransitioning(true);
+              flipCard();
+              setTimeout(() => setIsTransitioning(false), 400);
+            }}
+            style={{
+              perspective: '1000px',
+            }}
+            aria-label={isFlipped ? "Click to see question" : "Click to see answer"}
           >
-            {/* Card Front */}
             <div
-              className={`absolute w-full h-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl shadow-lg p-6 flex flex-col backface-hidden ${
-                isFlipped ? 'hidden' : ''
+              className={`relative w-full h-full transition-transform duration-400 transform-style-preserve-3d ${
+                isFlipped ? 'rotate-y-180' : ''
               }`}
+              aria-live="polite"
             >
-              <div className="flex-1 flex items-center justify-center overflow-auto">
-                <div className="text-xl text-center">{currentCard.front}</div>
+              {/* Card Front */}
+              <div
+                className={`absolute w-full h-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl shadow-lg p-6 flex flex-col backface-hidden ${
+                  isFlipped ? 'hidden' : ''
+                }`}
+              >
+                <div className="flex-1 flex items-center justify-center overflow-auto">
+                  <div className="text-xl text-center">{currentCard.front}</div>
+                </div>
+                <div className="mt-4 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
+                  Click to flip or press Space
+                </div>
               </div>
-              <div className="mt-4 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
-                Click to flip or press Space
-              </div>
-            </div>
-            
-            {/* Card Back */}
-            <div
-              className={`absolute w-full h-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl shadow-lg p-6 flex flex-col backface-hidden rotate-y-180 ${
-                !isFlipped ? 'hidden' : ''
-              }`}
-            >
-              <div className="flex-1 flex items-center justify-center overflow-auto">
-                <div className="text-xl text-center">{currentCard.back}</div>
+              
+              {/* Card Back */}
+              <div
+                className={`absolute w-full h-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl shadow-lg p-6 flex flex-col backface-hidden rotate-y-180 ${
+                  !isFlipped ? 'hidden' : ''
+                }`}
+              >
+                <div className="flex-1 flex items-center justify-center overflow-auto">
+                  <div className="text-xl text-center">{currentCard.back}</div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        
-        {/* Card counters */}
-        <div className="mb-4 text-xs text-gray-500 dark:text-gray-400 flex gap-4">
-          <div className="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {currentCard.reviewCount} reviews
-          </div>
-          {currentCard.nextInterval && (
+          
+          {/* Card counters */}
+          <div className="mb-4 text-xs text-gray-500 dark:text-gray-400 flex gap-4">
             <div className="flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Next review: {new Date(currentCard.dueDate).toLocaleDateString()}
+              {currentCard.reviewCount} reviews
+            </div>
+            {currentCard.nextInterval && (
+              <div className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Next review: {new Date(currentCard.dueDate).toLocaleDateString()}
+              </div>
+            )}
+          </div>
+          
+          {/* Navigation Controls */}
+          <div className="flex w-full max-w-xl justify-between mb-6">
+            <button
+              onClick={prevCard}
+              disabled={currentIndex === 0}
+              className={`p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center ${
+                activeKey === 'ArrowLeft' ? 'bg-gray-200 dark:bg-gray-600' : ''
+              }`}
+              aria-label="Previous card"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span className="ml-1 hidden sm:inline">Previous</span>
+            </button>
+            
+            <button
+              onClick={skipCard}
+              className={`px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center ${
+                activeKey === 'KeyS' ? 'bg-gray-200 dark:bg-gray-600' : ''
+              }`}
+              aria-label="Skip card"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              </svg>
+              Skip
+            </button>
+            
+            <button
+              onClick={nextCard}
+              disabled={currentIndex >= reviewCards.length - 1}
+              className={`p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center ${
+                activeKey === 'ArrowRight' ? 'bg-gray-200 dark:bg-gray-600' : ''
+              }`}
+              aria-label="Next card"
+            >
+              <span className="mr-1 hidden sm:inline">Next</span>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Grading Controls - Only shown when card is flipped */}
+          {isFlipped && (
+            <div className="w-full max-w-xl grid grid-cols-4 gap-2">
+              <GradeButton grade="again" active={activeKey === '1' || activeKey === 'KeyA'} onClick={() => gradeCard('again')} />
+              <GradeButton grade="hard" active={activeKey === '2' || activeKey === 'KeyH'} onClick={() => gradeCard('hard')} />
+              <GradeButton grade="good" active={activeKey === '3' || activeKey === 'KeyG'} onClick={() => gradeCard('good')} />
+              <GradeButton grade="easy" active={activeKey === '4' || activeKey === 'KeyE'} onClick={() => gradeCard('easy')} />
             </div>
           )}
         </div>
-        
-        {/* Navigation Controls */}
-        <div className="flex w-full max-w-xl justify-between mb-6">
-          <button
-            onClick={prevCard}
-            disabled={currentIndex === 0}
-            className={`p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center ${
-              activeKey === 'ArrowLeft' ? 'bg-gray-200 dark:bg-gray-600' : ''
-            }`}
-            aria-label="Previous card"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            <span className="ml-1 hidden sm:inline">Previous</span>
-          </button>
-          
-          <button
-            onClick={skipCard}
-            className={`px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center ${
-              activeKey === 'KeyS' ? 'bg-gray-200 dark:bg-gray-600' : ''
-            }`}
-            aria-label="Skip card"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-            </svg>
-            Skip
-          </button>
-          
-          <button
-            onClick={nextCard}
-            disabled={currentIndex >= reviewCards.length - 1}
-            className={`p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center ${
-              activeKey === 'ArrowRight' ? 'bg-gray-200 dark:bg-gray-600' : ''
-            }`}
-            aria-label="Next card"
-          >
-            <span className="mr-1 hidden sm:inline">Next</span>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-        
-        {/* Grading Controls - Only shown when card is flipped */}
-        {isFlipped && (
-          <div className="w-full max-w-xl grid grid-cols-4 gap-2">
-            <GradeButton grade="again" active={activeKey === '1' || activeKey === 'KeyA'} onClick={() => gradeCard('again')} />
-            <GradeButton grade="hard" active={activeKey === '2' || activeKey === 'KeyH'} onClick={() => gradeCard('hard')} />
-            <GradeButton grade="good" active={activeKey === '3' || activeKey === 'KeyG'} onClick={() => gradeCard('good')} />
-            <GradeButton grade="easy" active={activeKey === '4' || activeKey === 'KeyE'} onClick={() => gradeCard('easy')} />
-          </div>
-        )}
       </div>
     </div>
   );
