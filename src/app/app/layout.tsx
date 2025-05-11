@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -9,6 +9,7 @@ import { signOut } from 'next-auth/react';
 import { useNotes } from '@/store/NoteStore';
 import { usePathname } from 'next/navigation';
 import FolderList from '@/components/FolderList';
+import { getTagStyle, getTagColor } from '@/utils/tagColors';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -18,10 +19,26 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { data: session, status } = useSession();
   const { notes, getAllTags, getFavorites } = useNotes();
   const pathname = usePathname();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   
   // Get app data
   const allTags = getAllTags();
   const favoriteNotes = getFavorites();
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.user-menu-container')) {
+        setUserMenuOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   
   // Check if current page is dashboard
   const isDashboard = pathname === '/app';
@@ -66,21 +83,52 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </Link>
               )}
               <ThemeToggle />
-              <div className="relative group">
-                <button className="flex items-center space-x-2 focus:outline-none">
+              <div className="relative user-menu-container">
+                <button 
+                  onClick={() => setUserMenuOpen(!userMenuOpen)} 
+                  className="flex items-center space-x-2 focus:outline-none"
+                  aria-expanded={userMenuOpen}
+                  aria-haspopup="true"
+                >
                   <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white">
                     {session?.user?.name?.[0] || session?.user?.email?.[0] || 'U'}
                   </div>
                   <span>{session?.user?.name || session?.user?.email}</span>
+                  <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
                 </button>
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 hidden group-hover:block z-10">
-                  <button 
-                    onClick={() => signOut({ callbackUrl: '/' })}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    Sign out
-                  </button>
-                </div>
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10">
+                    <Link 
+                      href="/app/settings"
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <div className="flex items-center">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Settings
+                      </div>
+                    </Link>
+                    <button 
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        signOut({ callbackUrl: '/' });
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <div className="flex items-center">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                        Sign out
+                      </div>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -167,7 +215,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         href={`/app/notes?tag=${tag}`}
                         className="flex items-center px-2 py-1 text-sm rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                       >
-                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                        <span 
+                          className="w-2 h-2 rounded-full mr-2"
+                          style={getTagStyle(tag)}
+                        ></span>
                         <span className="truncate">{tag}</span>
                       </Link>
                     ))

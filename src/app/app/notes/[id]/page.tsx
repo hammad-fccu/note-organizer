@@ -7,6 +7,7 @@ import { useNotes } from '@/store/NoteStore';
 import NoteSummary from '@/components/NoteSummary';
 import NoteTabs from '@/components/NoteTabs';
 import { SummaryType } from '@/utils/aiSummary';
+import { getTagStyle } from '@/utils/tagColors';
 
 interface NotePageProps {
   params: {
@@ -105,7 +106,8 @@ export default function NotePage({ params }: NotePageProps) {
             {tags.split(',').map((tag, index) => (
               <span
                 key={index}
-                className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm"
+                className="px-3 py-1 rounded-full text-sm text-white"
+                style={getTagStyle(tag.trim())}
               >
                 {tag.trim()}
               </span>

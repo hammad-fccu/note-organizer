@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useNotes } from '@/store/NoteStore';
+import { getTagStyle } from '@/utils/tagColors';
 
 interface FolderPageProps {
   params: {
@@ -249,7 +250,8 @@ export default function FolderPage({ params }: FolderPageProps) {
                       <Link 
                         key={tag} 
                         href={`/app/notes?tag=${tag}`}
-                        className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                        className="px-2 py-1 text-xs rounded-full text-white"
+                        style={getTagStyle(tag)}
                       >
                         {tag}
                       </Link>
