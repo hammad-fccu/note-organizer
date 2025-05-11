@@ -7,6 +7,7 @@ import { useNotes } from '@/store/NoteStore';
 import NoteSummary from '@/components/NoteSummary';
 import NoteTabs from '@/components/NoteTabs';
 import { SummaryType } from '@/utils/aiSummary';
+import { getTagStyle } from '@/utils/tagColors';
 
 // Add these imports for the API call
 import { generateTags } from '@/utils/aiSummary';
@@ -274,32 +275,20 @@ export default function NotePage({ params }: NotePageProps) {
         </div>
       </div>
       
+      {/* Always show the Tags section, even when empty */}
       <div className="mb-4">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tags:</h3>
-        <div className="flex flex-wrap gap-2 items-center" key={`tags-container-${tagUpdateCount}`}>
-          {tags && tags.split(',').filter(tag => tag.trim() !== '').map((tag, index) => (
-            <span
-              key={`tag-${index}-${tag.trim()}-${tagUpdateCount}`}
-              className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm"
-            >
-              {tag.trim()}
-            </span>
-          ))}
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Tags:</h3>
           <button
             onClick={() => {
               handleGenerateTags().then(() => {
-                // Force a refresh of the component after tags are generated
-                const note = getNoteById(id);
-                if (note) {
-                  setTags(note.tags.join(', '));
-                  setTagUpdateCount(prev => prev + 1);
-                  console.log('Tags updated in view mode, forcing re-render');
-                }
+                console.log('Tags updated in view mode');
+                setTagUpdateCount(prev => prev + 1);
               }).catch(err => console.error('Tag generation error:', err));
             }}
             disabled={isGeneratingTags || !content}
-            className={`ml-2 px-3 py-1 bg-gray-800 text-blue-400 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all hover:shadow-[0_0_12px_rgba(59,130,246,0.6)] ${isGeneratingTags ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title="Auto-generate tags based on content"
+            className={`px-3 py-1 bg-gray-800 text-blue-400 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all hover:shadow-[0_0_12px_rgba(59,130,246,0.6)] ${isGeneratingTags ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title="Generate or enhance tags based on note content"
           >
             {isGeneratingTags ? (
               <span className="flex items-center">
@@ -318,6 +307,21 @@ export default function NotePage({ params }: NotePageProps) {
               </>
             )}
           </button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {tags ? tags.split(',').map((tag, index) => (
+            tag.trim() && (
+              <span
+                key={index}
+                className="px-3 py-1 rounded-full text-sm text-white"
+                style={getTagStyle(tag.trim())}
+              >
+                {tag.trim()}
+              </span>
+            )
+          )) : (
+            <span className="text-sm text-gray-500 dark:text-gray-400">No tags yet. Click "Generate Tags" to create tags based on your note content.</span>
+          )}
         </div>
       </div>
       

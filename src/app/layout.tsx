@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="light">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Inline script to set dark mode based on localStorage */}
         <script
@@ -33,6 +33,8 @@ export default function RootLayout({
               try {
                 let isDarkMode = localStorage.getItem('darkMode') === 'true' || 
                     (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                console.log('Initial dark mode:', isDarkMode);
+                
                 if (isDarkMode) {
                   document.documentElement.classList.add('dark');
                   document.documentElement.classList.remove('light');
@@ -40,6 +42,20 @@ export default function RootLayout({
                   document.documentElement.classList.remove('dark');
                   document.documentElement.classList.add('light');
                 }
+                
+                // Debug: Log the HTML class after setting it
+                console.log('HTML class after init:', document.documentElement.className);
+                
+                // Set up an observer to monitor class changes
+                const observer = new MutationObserver((mutations) => {
+                  mutations.forEach((mutation) => {
+                    if (mutation.attributeName === 'class') {
+                      console.log('Class changed to:', document.documentElement.className);
+                    }
+                  });
+                });
+                
+                observer.observe(document.documentElement, { attributes: true });
               } catch(e) {
                 console.error('Error accessing localStorage:', e);
               }

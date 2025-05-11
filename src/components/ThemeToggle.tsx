@@ -10,25 +10,65 @@ export default function ThemeToggle() {
     const isDarkMode = localStorage.getItem('darkMode') === 'true' ||
       (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
     
+    console.log('Initial darkMode state:', isDarkMode);
     setDarkMode(isDarkMode);
+    
+    // Make sure dark mode is applied correctly on initial load
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    }
   }, []);
 
   useEffect(() => {
     if (darkMode !== undefined) {
+      console.log('Theme changed to:', darkMode ? 'dark' : 'light');
+      
       // Update the HTML class and localStorage when theme changes
       if (darkMode) {
         document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
         localStorage.setItem('darkMode', 'true');
       } else {
         document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
         localStorage.setItem('darkMode', 'false');
       }
+      
+      // Debug: Log classes after update
+      console.log('Current HTML classes:', document.documentElement.className);
     }
   }, [darkMode]);
 
   // Handle toggle click
   const toggleDarkMode = () => {
-    setDarkMode(prevMode => !prevMode);
+    console.log('Toggle clicked, current state:', darkMode);
+    
+    // Get the next state
+    const newDarkMode = !darkMode;
+    
+    // Apply classes directly (in addition to the state change)
+    if (newDarkMode) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+      localStorage.setItem('darkMode', 'true');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+      localStorage.setItem('darkMode', 'false');
+    }
+    
+    // Update state
+    setDarkMode(newDarkMode);
+    
+    // Force a redraw on the page by briefly changing a property
+    document.body.style.opacity = '0.99';
+    setTimeout(() => {
+      document.body.style.opacity = '1';
+    }, 10);
   };
 
   if (darkMode === undefined) return null; // Avoid flash during hydration
