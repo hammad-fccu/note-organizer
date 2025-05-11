@@ -5,12 +5,21 @@ import Link from 'next/link';
 import { useNotes } from '@/store/NoteStore';
 import { Folder } from '@/types/note';
 
-export default function FolderList() {
+interface FolderListProps {
+  searchTerm?: string;
+}
+
+export default function FolderList({ searchTerm = '' }: FolderListProps) {
   const { folders, addFolder, updateFolder, deleteFolder, getNotesInFolder } = useNotes();
   const [isAddingFolder, setIsAddingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editFolderName, setEditFolderName] = useState('');
+
+  // Filter folders based on search term
+  const filteredFolders = folders.filter(folder => 
+    folder.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleAddFolder = () => {
     if (newFolderName.trim()) {
@@ -88,8 +97,8 @@ export default function FolderList() {
 
       {/* Folders List */}
       <div className="space-y-1">
-        {folders.length > 0 ? (
-          folders.map(folder => {
+        {filteredFolders.length > 0 ? (
+          filteredFolders.map(folder => {
             const notesCount = getNotesInFolder(folder.id).length;
             
             return (
@@ -164,7 +173,9 @@ export default function FolderList() {
             );
           })
         ) : (
-          <div className="text-sm text-gray-500 dark:text-gray-400 p-2 italic">No folders yet</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400 p-2 italic">
+            {searchTerm ? 'No matching folders found' : 'No folders yet'}
+          </div>
         )}
       </div>
     </div>
