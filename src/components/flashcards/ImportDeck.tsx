@@ -1,0 +1,253 @@
+'use client';
+
+import { useState } from 'react';
+import { useFlashcards } from '@/store/FlashcardStore';
+import { FlashcardReview } from '@/types/flashcards';
+
+export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardReview[]) => void }) {
+  const { importCardsFromText } = useFlashcards();
+  const [text, setText] = useState('');
+  const [deckName, setDeckName] = useState('');
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+  const [previewCards, setPreviewCards] = useState<FlashcardReview[]>([]);
+  const [importMethod, setImportMethod] = useState<'paste' | 'file'>('paste');
+  
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(e.target.value);
+    setIsPreviewVisible(false);
+  };
+  
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Only accept .txt files
+    if (file.type !== 'text/plain') {
+      alert('Please upload a text file (.txt)');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setText(content);
+      setIsPreviewVisible(false);
+      
+      // Try to extract deck name from filename
+      const fileName = file.name.replace(/\.txt$/, '');
+      if (fileName && !deckName) {
+        setDeckName(fileName);
+      }
+    };
+    reader.readAsText(file);
+  };
+  
+  const handlePreview = () => {
+    if (!text) return;
+    
+    const cards = importCardsFromText(text);
+    setPreviewCards(cards);
+    setIsPreviewVisible(true);
+  };
+  
+  const handleImport = () => {
+    if (!text || !deckName) return;
+    
+    const cards = importCardsFromText(text);
+    if (cards.length > 0) {
+      // Add deck name to cards
+      const cardsWithDeckName = cards.map(card => ({
+        ...card,
+        deckId: deckName.trim().toLowerCase().replace(/\s+/g, '-')
+      }));
+      
+      onImport(cardsWithDeckName);
+      
+      // Reset form
+      setText('');
+      setDeckName('');
+      setIsPreviewVisible(false);
+    }
+  };
+  
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+      {/* Instructions Panel */}
+      <div className="bg-blue-50 dark:bg-blue-900/30 p-4 border-b border-blue-100 dark:border-blue-800">
+        <h3 className="text-md font-medium mb-2 text-blue-700 dark:text-blue-300">How to Import Flashcards</h3>
+        <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">
+          Import flashcards in Q&A format from a text file or paste them directly.
+        </p>
+        <div className="text-xs text-blue-600 dark:text-blue-400">
+          <p className="font-medium">Supported format:</p>
+          <pre className="mt-1 p-2 bg-white dark:bg-gray-800 rounded border border-blue-200 dark:border-blue-800 overflow-x-auto">
+            Q: What is the capital of France?{'\n'}
+            A: Paris{'\n'}
+            {'\n'}
+            Q: What is the largest planet in our solar system?{'\n'}
+            A: Jupiter
+          </pre>
+        </div>
+      </div>
+      
+      <div className="p-6">
+        {/* Deck Name */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Deck Name</label>
+          <input
+            type="text"
+            value={deckName}
+            onChange={(e) => setDeckName(e.target.value)}
+            placeholder="Enter a name for this deck"
+            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            required
+          />
+        </div>
+        
+        {/* Import Method Tabs */}
+        <div className="mb-4">
+          <div className="flex border-b border-gray-200 dark:border-gray-700">
+            <button
+              className={`py-2 px-4 text-sm font-medium ${
+                importMethod === 'paste'
+                  ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+              onClick={() => setImportMethod('paste')}
+            >
+              Paste Text
+            </button>
+            <button
+              className={`py-2 px-4 text-sm font-medium ${
+                importMethod === 'file'
+                  ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+              onClick={() => setImportMethod('file')}
+            >
+              Upload File
+            </button>
+          </div>
+        </div>
+        
+        {/* Import Methods */}
+        {importMethod === 'paste' ? (
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+              Paste Your Flashcards
+            </label>
+            <textarea
+              value={text}
+              onChange={handleTextChange}
+              placeholder="Paste your flashcards here in Q/A format..."
+              className="w-full h-64 p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+            />
+          </div>
+        ) : (
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+              Upload Flashcard Text File
+            </label>
+            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-md">
+              <div className="space-y-1 text-center">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  stroke="currentColor"
+                  fill="none"
+                  viewBox="0 0 48 48"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <div className="flex justify-center text-sm text-gray-600 dark:text-gray-400">
+                  <label
+                    htmlFor="file-upload"
+                    className="relative cursor-pointer rounded-md font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 focus-within:outline-none"
+                  >
+                    <span>Upload a file</span>
+                    <input
+                      id="file-upload"
+                      name="file-upload"
+                      type="file"
+                      accept=".txt"
+                      className="sr-only"
+                      onChange={handleFileUpload}
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Text files (.txt) in Q/A format
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Action Buttons */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={handlePreview}
+            disabled={!text}
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600"
+          >
+            Preview
+          </button>
+          <button
+            onClick={handleImport}
+            disabled={!text || !deckName}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex-1"
+          >
+            Import Deck
+          </button>
+        </div>
+        
+        {/* Preview Section */}
+        {isPreviewVisible && previewCards.length > 0 && (
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-medium">Preview</h3>
+              <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-medium px-2.5 py-0.5 rounded">
+                {previewCards.length} cards
+              </span>
+            </div>
+            <div className="max-h-80 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-md">
+              <table className="w-full border-collapse">
+                <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0">
+                  <tr>
+                    <th className="p-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Front</th>
+                    <th className="p-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Back</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {previewCards.map((card, index) => (
+                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <td className="p-3 text-sm whitespace-pre-wrap">{card.front}</td>
+                      <td className="p-3 text-sm whitespace-pre-wrap">{card.back}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        
+        {isPreviewVisible && previewCards.length === 0 && (
+          <div className="p-4 bg-red-100 dark:bg-red-900/30 rounded-md mb-4 border border-red-200 dark:border-red-800">
+            <p className="text-red-600 dark:text-red-300 font-medium">
+              No valid flashcards found. Please check your format.
+            </p>
+            <p className="text-sm text-red-500 dark:text-red-400 mt-1">
+              Make sure each card follows the format: Q: question, A: answer
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+} 

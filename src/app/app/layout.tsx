@@ -183,6 +183,18 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </Link>
               
               <Link
+                href="/app/practice-flashcards"
+                className="w-full flex items-center justify-between p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 group"
+              >
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                  </svg>
+                  <span>Practice Flashcards</span>
+                </div>
+              </Link>
+              
+              <Link
                 href="/app/favorites"
                 className="w-full flex items-center justify-between p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 group"
               >

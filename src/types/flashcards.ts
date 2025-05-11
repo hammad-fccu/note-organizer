@@ -43,4 +43,36 @@ export interface AnkiExportPayload {
     includeTags: boolean;
     bundleMedia: boolean;
   };
+}
+
+// Practice flashcards types
+export interface FlashcardReview {
+  id: string;
+  deckId?: string;
+  noteId?: string;
+  front: string;
+  back: string;
+  tags: string[];
+  dueDate: string;
+  reviewCount: number;
+  lastReviewed?: string;
+  nextInterval?: number;
+}
+
+export type GradeType = 'again' | 'hard' | 'good' | 'easy';
+
+export interface ReviewResult {
+  cardId: string;
+  grade: GradeType;
+  reviewTime: number; // milliseconds spent reviewing
+  reviewedAt: string; // ISO timestamp
+}
+
+export interface ReviewSession {
+  id: string;
+  userId?: string;
+  startedAt: string;
+  cardsReviewed: number;
+  cardsRemaining: number;
+  results: ReviewResult[];
 } 
