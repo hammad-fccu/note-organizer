@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFlashcards } from '@/store/FlashcardStore';
 import { FlashcardReview } from '@/types/flashcards';
 
@@ -11,6 +11,27 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
   const [previewCards, setPreviewCards] = useState<FlashcardReview[]>([]);
   const [importMethod, setImportMethod] = useState<'paste' | 'file'>('paste');
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  
+  // Check for dark mode on mount and when theme changes
+  useEffect(() => {
+    const checkDarkMode = () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      setIsDarkMode(isDark);
+    };
+    
+    // Check on mount
+    checkDarkMode();
+    
+    // Create observer to watch for class changes on html element
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, { 
+      attributes: true, 
+      attributeFilter: ['class'] 
+    });
+    
+    return () => observer.disconnect();
+  }, []);
   
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
@@ -72,27 +93,36 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
   
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-      {/* Instructions Panel */}
-      <div className="bg-blue-50 dark:bg-blue-900/40 p-4 border-b border-blue-200 dark:border-blue-800">
-        <h3 className="text-md font-semibold mb-2 text-blue-900 dark:text-blue-300">How to Import Flashcards</h3>
-        <p className="text-sm text-blue-800 dark:text-blue-300 mb-2">
+      {/* Instructions Panel with correct styling */}
+      <div className="p-4 border-b border-blue-200 dark:border-blue-800 dark:bg-blue-900/40" 
+           style={{ backgroundColor: isDarkMode ? undefined : '#f0f7ff' }}>
+        <h3 className="text-md font-semibold mb-2 dark:text-blue-300"
+            style={{ color: isDarkMode ? undefined : '#1e40af' }}>How to Import Flashcards</h3>
+        <p className="text-sm mb-2 dark:text-blue-300"
+           style={{ color: isDarkMode ? undefined : '#1e3a8a' }}>
           Import flashcards in Q&A format from a text file or paste them directly.
         </p>
-        <div className="text-xs text-blue-800 dark:text-blue-300">
+        <div className="text-xs dark:text-blue-300"
+             style={{ color: isDarkMode ? undefined : '#1e3a8a' }}>
           <p className="font-medium mb-1">Supported format:</p>
           <div className="mt-1 p-3 bg-white dark:bg-gray-800 rounded border border-blue-200 dark:border-blue-700 overflow-x-auto shadow-sm">
-            <div className="text-gray-800 dark:text-gray-200 font-mono">
+            <div className="font-mono dark:text-gray-100" 
+                 style={{ color: isDarkMode ? undefined : '#1f2937' }}>
               <div className="mb-1">
-                <span className="text-green-600 dark:text-green-400 font-semibold">Q:</span> What is the capital of France?
+                <span className="font-semibold dark:text-green-400" 
+                      style={{ color: isDarkMode ? undefined : '#059669' }}>Q:</span> What is the capital of France?
               </div>
               <div className="mb-3">
-                <span className="text-blue-600 dark:text-blue-400 font-semibold">A:</span> Paris
+                <span className="font-semibold dark:text-blue-400" 
+                      style={{ color: isDarkMode ? undefined : '#2563eb' }}>A:</span> Paris
               </div>
               <div className="mb-1">
-                <span className="text-green-600 dark:text-green-400 font-semibold">Q:</span> What is the largest planet in our solar system?
+                <span className="font-semibold dark:text-green-400" 
+                      style={{ color: isDarkMode ? undefined : '#059669' }}>Q:</span> What is the largest planet in our solar system?
               </div>
               <div>
-                <span className="text-blue-600 dark:text-blue-400 font-semibold">A:</span> Jupiter
+                <span className="font-semibold dark:text-blue-400" 
+                      style={{ color: isDarkMode ? undefined : '#2563eb' }}>A:</span> Jupiter
               </div>
             </div>
           </div>

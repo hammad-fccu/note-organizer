@@ -1,0 +1,135 @@
+I'll explore the codebase structure for you.
+
+Ran tool
+This appears to be a Next.js project with TypeScript and Tailwind CSS. Let's examine the main source code directory.
+
+Ran tool
+Let's check the app directory which is the main structure in a Next.js application:
+
+Ran tool
+Let's look at the components directory to understand what UI components are available:
+
+Ran tool
+Let's also look at the store to understand state management:
+
+Ran tool
+Let's look at the package.json to understand dependencies and scripts:
+
+Read file: package.json
+Now, let's look at the main page file:
+
+Read file: src/app/page.tsx
+Let's look at the NoteStore to understand how data is managed:
+
+Read file: src/store/NoteStore.tsx
+Let's check the types:
+
+Ran tool
+
+Read file: src/types/note.ts
+Let's look at the app directory structure:
+
+Ran tool
+Let's also take a look at the application layout:
+
+Read file: src/app/app/layout.tsx
+Let's look at the flashcards functionality:
+
+Ran tool
+Let's look at the note functionality:
+
+Ran tool
+Based on the exploration so far, I'll provide a summary of the codebase structure and functionality:
+
+This is a Next.js application for a Smart Note Organizer with the following features:
+
+1. **Core Functionality**:
+   - Note taking and organization
+   - PDF and text import
+   - AI-powered summaries and tagging
+   - Flashcard generation (with Anki export)
+   - Folder-based organization
+
+2. **Technology Stack**:
+   - Next.js 15.3.2 with React 19
+   - TypeScript
+   - Tailwind CSS for styling
+   - NextAuth for authentication
+   - TipTap for rich text editing
+   - Tesseract.js for OCR processing
+   - IndexedDB (via idb package) for client-side storage
+
+3. **Project Structure**:
+   - `/src/app` - Next.js app router structure
+   - `/src/components` - Reusable UI components
+   - `/src/store` - State management using React Context
+   - `/src/types` - TypeScript interfaces for data structures
+   - `/src/utils` - Utility functions
+
+4. **Data Management**:
+   - Notes and folders are stored in browser localStorage
+   - Notes can have tags, summaries, and be organized in folders
+   - State is managed through context provider in NoteStore.tsx
+
+5. **Key Features**:
+   - Authentication flow
+   - Document import and OCR processing
+   - Note editor with rich text capabilities
+   - Folder and tag-based organization
+   - Flashcard generation for study purposes
+   - AI summarization of notes
+
+The application follows a modern React architecture with client-side rendering and local storage persistence. It appears to be a comprehensive note-taking application with features specifically designed for students and researchers.
+
+
+
+
+The fix for lightmode intereference bug:
+It sounds like there might be an issue with CSS specificity or light/dark mode detection. Let's investigate and fix the color issues.
+
+```bash
+cat src/app/globals.css
+```
+Now, let's look at the specific styles in our ImportDeck component:
+
+```bash
+more src/components/flashcards/ImportDeck.tsx
+```
+Based on the information provided, there appears to be a CSS specificity issue where other global styles are overriding our custom styles in light mode. Let's try a different approach with directly targeted styles using `!important` to force our colors to apply in all modes.
+// ... existing code ...
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+      {/* Instructions Panel with forced colors */}
+      <div style={{ backgroundColor: '#f0f7ff' }} className="p-4 border-b border-blue-200 dark:border-blue-800 dark:bg-blue-900/40">
+        <h3 style={{ color: '#1e40af' }} className="text-md font-semibold mb-2 dark:text-blue-300">How to Import Flashcards</h3>
+        <p style={{ color: '#1e3a8a' }} className="text-sm mb-2 dark:text-blue-300">
+          Import flashcards in Q&A format from a text file or paste them directly.
+        </p>
+        <div style={{ color: '#1e3a8a' }} className="text-xs dark:text-blue-300">
+          <p className="font-medium mb-1">Supported format:</p>
+          <div className="mt-1 p-3 bg-white dark:bg-gray-800 rounded border border-blue-200 dark:border-blue-700 overflow-x-auto shadow-sm">
+            <div className="font-mono" style={{ color: '#1f2937' }}>
+              <div className="mb-1">
+                <span style={{ color: '#059669' }} className="font-semibold dark:text-green-400">Q:</span> What is the capital of France?
+              </div>
+              <div className="mb-3">
+                <span style={{ color: '#2563eb' }} className="font-semibold dark:text-blue-400">A:</span> Paris
+              </div>
+              <div className="mb-1">
+                <span style={{ color: '#059669' }} className="font-semibold dark:text-green-400">Q:</span> What is the largest planet in our solar system?
+              </div>
+              <div>
+                <span style={{ color: '#2563eb' }} className="font-semibold dark:text-blue-400">A:</span> Jupiter
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      // ... rest of component ...
+    </div>
+  );
+}
+
+Thank you for the summary. I understand you've been implementing a Practice Flashcards feature for a Smart Note Organizer web application with various components and UI improvements. What would you like me to help you with next?
