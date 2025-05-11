@@ -17,7 +17,7 @@ export default function FlashcardGenerator({
   isGenerating,
   setIsGenerating
 }: FlashcardGeneratorProps) {
-  const [maxCards, setMaxCards] = useState<number>(10);
+  const [maxCards, setMaxCards] = useState<number>(5);
   const [temperature, setTemperature] = useState<number>(0.7);
   
   // Dynamic prompt template based on card type
@@ -34,6 +34,7 @@ export default function FlashcardGenerator({
     }
   };
   
+  // Store prompt template based on card type, but don't expose it to user
   const [promptTemplate, setPromptTemplate] = useState<string>(getDefaultPromptTemplate('Basic'));
   
   // Update prompt template when card type changes
@@ -95,6 +96,10 @@ export default function FlashcardGenerator({
     }
   };
 
+  // Calculate position percentages for slider thumbs
+  const maxCardsPercent = ((maxCards - 1) / 9) * 100;
+  const temperaturePercent = ((temperature - 0.1) / 0.9) * 100;
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
       <h2 className="text-lg font-medium mb-4">Step 3: AI-Assisted Card Generation</h2>
@@ -102,74 +107,81 @@ export default function FlashcardGenerator({
       <div className="space-y-6">
         {/* Number of Cards */}
         <div>
-          <label htmlFor="max-cards" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-            Number of Cards to Generate
-          </label>
-          <div className="flex items-center space-x-4">
+          <div className="flex justify-between mb-1">
+            <label htmlFor="max-cards" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Number of Cards to Generate
+            </label>
+            <span className="text-sm font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+              {maxCards}
+            </span>
+          </div>
+          <div className="mt-2 relative h-7 flex items-center">
+            <div className="absolute top-1/2 -translate-y-1/2 h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-blue-300/70 to-blue-500/70 dark:from-blue-400/70 dark:to-blue-600/70" 
+                style={{ width: `${maxCardsPercent}%` }}
+              ></div>
+            </div>
+            <div 
+              className="absolute h-4 w-4 bg-white border-2 border-blue-500 dark:border-blue-400 rounded-full shadow-sm z-10"
+              style={{ left: `calc(${maxCardsPercent}% - 8px)` }}
+            ></div>
             <input
               type="range"
               id="max-cards"
-              min="5"
-              max="50"
-              step="5"
+              min="1"
+              max="10"
+              step="1"
               value={maxCards}
               onChange={(e) => setMaxCards(parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
-            <span className="w-12 text-center">{maxCards}</span>
+            <div className="absolute top-5 inset-x-0 flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <span>1</span>
+              <span>10</span>
+            </div>
           </div>
         </div>
         
         {/* Temperature Slider */}
         <div>
-          <label className="flex justify-between mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-            <span>Creativity Level</span>
-            <span className="text-xs text-gray-500">(Higher = more creative, but potentially less accurate)</span>
-          </label>
-          <div className="flex items-center space-x-4">
-            <span className="text-xs">Precise</span>
+          <div className="flex justify-between mb-1">
+            <label htmlFor="temperature" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Creativity Level
+            </label>
+            <span className="text-sm font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+              {temperature.toFixed(1)}
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            Higher values produce more creative but potentially less accurate content
+          </p>
+          <div className="mt-1 relative h-7 flex items-center">
+            <div className="absolute top-1/2 -translate-y-1/2 h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-blue-300/70 to-purple-400/70 dark:from-blue-400/70 dark:to-purple-500/70" 
+                style={{ width: `${temperaturePercent}%` }}
+              ></div>
+            </div>
+            <div 
+              className="absolute h-4 w-4 bg-white border-2 border-blue-500 dark:border-blue-400 rounded-full shadow-sm z-10"
+              style={{ left: `calc(${temperaturePercent}% - 8px)` }}
+            ></div>
             <input
               type="range"
+              id="temperature"
               min="0.1"
               max="1"
               step="0.1"
               value={temperature}
               onChange={(e) => setTemperature(parseFloat(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
-            <span className="text-xs">Creative</span>
-            <span className="w-12 text-center">{temperature}</span>
+            <div className="absolute top-5 inset-x-0 flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <span>Precise</span>
+              <span>Creative</span>
+            </div>
           </div>
-        </div>
-        
-        {/* Card Type Info */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800">
-          <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">
-            Generating {cardType} Cards
-          </h3>
-          <p className="text-xs text-blue-600 dark:text-blue-400">
-            {cardType === 'Basic' && 'Standard question and answer cards.'}
-            {cardType === 'Basic (and reversed card)' && 'Creates two cards from each fact: one testing front→back and another testing back→front.'}
-            {cardType === 'Cloze' && 'Creates fill-in-the-blank style cards where you recall the missing information.'}
-          </p>
-        </div>
-        
-        {/* Prompt Template */}
-        <div>
-          <label htmlFor="prompt-template" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-            Generation Prompt Template
-          </label>
-          <textarea
-            id="prompt-template"
-            value={promptTemplate}
-            onChange={(e) => setPromptTemplate(e.target.value)}
-            rows={3}
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg"
-            placeholder="Instructions for the AI on how to generate flashcards..."
-          />
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Customize how the AI generates your flashcards.
-          </p>
         </div>
         
         {/* Generate Button */}
@@ -181,7 +193,7 @@ export default function FlashcardGenerator({
               px-6 py-2 rounded-md font-medium flex items-center justify-center min-w-[200px]
               ${isGenerating || !noteId 
                 ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700 text-white'}
+                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow transition-all'}
             `}
           >
             {isGenerating ? (
