@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Flashcard, GeneratorOptions, CardType } from '@/types/flashcards';
 import { v4 as uuidv4 } from 'uuid';
+import { useNotes } from '@/store/NoteStore';
 
 interface FlashcardGeneratorProps {
   noteId: string;
@@ -19,6 +20,7 @@ export default function FlashcardGenerator({
 }: FlashcardGeneratorProps) {
   const [maxCards, setMaxCards] = useState<number>(5);
   const [temperature, setTemperature] = useState<number>(0.7);
+  const { getNoteById } = useNotes();
   
   // Dynamic prompt template based on card type
   const getDefaultPromptTemplate = (type: CardType) => {
@@ -42,37 +44,400 @@ export default function FlashcardGenerator({
     setPromptTemplate(getDefaultPromptTemplate(cardType));
   }, [cardType]);
 
-  // Function to handle flashcard generation (stub)
+  // Function to handle flashcard generation with actual API call
   const generateFlashcardsWithLLM = async (options: GeneratorOptions): Promise<Flashcard[]> => {
-    // This would be replaced with actual API call in production
     console.log('Generating flashcards with options:', options);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Get API key from localStorage
+    const apiKey = localStorage.getItem('openRouterApiKey');
     
-    // Return mock flashcards based on card type
-    if (cardType === 'Cloze') {
-      return Array(options.maxCards).fill(0).map((_, index) => ({
-        id: uuidv4(),
-        front: `This is a sample cloze deletion card #${index + 1}. The capital of France is [Paris], which is located in [Europe].`,
-        back: `This is a sample cloze deletion card #${index + 1}. The capital of France is Paris, which is located in Europe.`,
-        tags: ['sample', 'demo'],
-        createdAt: new Date()
-      }));
-    } else {
-      return Array(options.maxCards).fill(0).map((_, index) => ({
-        id: uuidv4(),
-        front: `Question ${index + 1}: What is the key concept from section ${index + 1}?`,
-        back: `Answer ${index + 1}: This is a simulated answer for demonstration purposes.`,
-        tags: ['sample', 'demo'],
-        createdAt: new Date()
-      }));
+    // Check if API key exists
+    if (!apiKey) {
+      throw new Error('No API key found. Please add your OpenRouter API key in the settings.');
+    }
+    
+    // Get the note content
+    const note = getNoteById(options.noteId);
+    if (!note) {
+      throw new Error('Note not found');
+    }
+    
+    // Create the prompt based on card type and note content
+    const instructions = options.template;
+    const prompt = `
+Generate ${options.maxCards} high-quality flashcards based on this note content:
+
+Note Title: ${note.title}
+
+${instructions}
+
+${cardType === 'Cloze' 
+  ? 'Create cloze deletion cards with exactly ONE key term in [square brackets] per card. Example: "The [mitochondria] is the powerhouse of the cell."' 
+  : 'Format each card as follows:\nCard 1\nFront: (question)\nBack: (answer)\n\nCard 2\nFront: (question)\nBack: (answer)'}
+
+Note Content:
+${note.content}
+
+Return exactly ${options.maxCards} flashcards focusing on the most important concepts.
+`;
+    
+    try {
+      // Make the API call to OpenRouter
+      // Get safe URL for referer
+      let referer = "https://smart-note-organizer.com";
+      try {
+        if (typeof window !== 'undefined' && window.location && window.location.href) {
+          referer = window.location.href;
+        }
+      } catch (error) {
+        console.error("Error getting window location:", error);
+      }
+      
+      console.log("Making OpenRouter API call with model: google/gemini-2.0-flash-exp:free");
+      
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+          "HTTP-Referer": referer,
+          "X-Title": "Smart Note Organizer"
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.0-flash-exp:free",
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: options.temperature
+        })
+      });
+      
+      // Log the response status for debugging
+      console.log(`API response status: ${response.status}`);
+      
+      if (!response.ok) {
+        let errorMessage = `API error (${response.status}): `;
+        
+        try {
+          const errorText = await response.text();
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage += errorData.error?.message || response.statusText || "Unknown error occurred";
+            console.error('API error response:', errorData);
+          } catch {
+            errorMessage += errorText || response.statusText || "Unknown error occurred";
+            console.error('API error (non-JSON):', errorText);
+          }
+        } catch (err) {
+          console.error('Failed to read error response:', err);
+          errorMessage += 'Failed to read error response';
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      // Try to get the response text to debug potential JSON parsing errors
+      const responseText = await response.text();
+      console.log("Raw API response:", responseText.substring(0, 200) + "...");
+      
+      // Check if the response is empty
+      if (!responseText || responseText.trim() === '') {
+        console.error("Empty response received from API");
+        throw new Error("The API returned an empty response. This could be due to rate limiting or an issue with the model. Please try again later.");
+      }
+      
+      // Parse JSON response
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('API response data structure:', Object.keys(data));
+      } catch (parseError) {
+        console.error("Failed to parse API response:", parseError);
+        // If we can't parse the response, try to extract text content directly
+        if (responseText.length > 20) {
+          console.log("Attempting to parse raw text response directly");
+          return parseRawTextIntoFlashcards(responseText, note.tags || [], cardType, options.maxCards);
+        }
+        throw new Error("Invalid JSON response from API. Please try again.");
+      }
+      
+      // Extract the content from the response
+      let content = '';
+      
+      if (data.choices && data.choices.length > 0) {
+        if (data.choices[0].message && data.choices[0].message.content) {
+          content = data.choices[0].message.content.trim();
+        } else if (data.choices[0].text) {
+          content = data.choices[0].text.trim();
+        }
+      }
+      
+      if (!content) {
+        console.error("No content in API response:", data);
+        throw new Error("The API returned an empty response. Please try again with different settings.");
+      }
+      
+      console.log("Extracted content:", content.substring(0, 200) + "...");
+      
+      // Parse the content into flashcards based on card type
+      const flashcards: Flashcard[] = [];
+      
+      if (cardType === 'Cloze') {
+        console.log("Parsing content for Cloze cards");
+        
+        // Look for numbered cloze cards first
+        const numberedClozeRegex = /card\s*(\d+)[.\s:]*([^]*?\[.*?\].*?)(?=card\s*\d+|$)/gi;
+        const numberedMatches = Array.from(content.matchAll(numberedClozeRegex));
+        
+        if (numberedMatches.length > 0) {
+          console.log("Found numbered cloze cards: ", numberedMatches.length);
+          numberedMatches.slice(0, options.maxCards).forEach((match) => {
+            const text = match[2].trim();
+            if (text && text.includes('[') && text.includes(']')) {
+              const front = text;
+              const back = text.replace(/\[([^\]]+)\]/g, '$1');
+              
+              flashcards.push({
+                id: uuidv4(),
+                front,
+                back,
+                tags: note.tags || [],
+                createdAt: new Date()
+              });
+            }
+          });
+        }
+        
+        // If no numbered cards found, look for any text with square brackets
+        if (flashcards.length < 1) {
+          console.log("Trying to find cloze deletions in text");
+          
+          // Split by sentences or newlines
+          const sentences = content.match(/[^.!?]+\[[^\]]+\][^.!?]*[.!?]/g) || [];
+          
+          if (sentences.length > 0) {
+            console.log("Found sentences with cloze deletions: ", sentences.length);
+            sentences.slice(0, options.maxCards).forEach((sentence) => {
+              if (sentence.includes('[') && sentence.includes(']')) {
+                const front = sentence.trim();
+                const back = sentence.replace(/\[([^\]]+)\]/g, '$1').trim();
+                
+                flashcards.push({
+                  id: uuidv4(),
+                  front,
+                  back,
+                  tags: note.tags || [],
+                  createdAt: new Date()
+                });
+              }
+            });
+          }
+        }
+        
+        // Last resort: look for any text fragments with square brackets
+        if (flashcards.length < 1) {
+          console.log("Last resort for cloze: any text with brackets");
+          const fragments = content.split(/\n+/)
+            .map(line => line.trim())
+            .filter(line => line.includes('[') && line.includes(']'));
+          
+          fragments.slice(0, options.maxCards).forEach(fragment => {
+            flashcards.push({
+              id: uuidv4(),
+              front: fragment,
+              back: fragment.replace(/\[([^\]]+)\]/g, '$1'),
+              tags: note.tags || [],
+              createdAt: new Date()
+            });
+          });
+        }
+      } else {
+        // Try multiple approaches to parse basic cards
+
+        // First attempt: Look for numbered cards with Front and Back
+        const numberedCardRegex = /card\s*(\d+)[\s\S]*?front:\s*([\s\S]*?)back:\s*([\s\S]*?)(?=card\s*\d+|$)/gi;
+        const numberedMatches = Array.from(content.matchAll(numberedCardRegex));
+        
+        if (numberedMatches.length > 0) {
+          console.log("Parsing using numbered card format with Front/Back");
+          numberedMatches.slice(0, options.maxCards).forEach((match) => {
+            const front = match[2].trim();
+            const back = match[3].trim();
+            
+            if (front && back) {
+              flashcards.push({
+                id: uuidv4(),
+                front,
+                back,
+                tags: note.tags || [],
+                createdAt: new Date()
+              });
+            }
+          });
+        }
+        
+        // Second attempt: Look for explicit Front: and Back: format
+        if (flashcards.length < Math.min(options.maxCards, 1)) {
+          console.log("Trying Front/Back format without card numbers");
+          const cardRegex = /front:\s*([\s\S]*?)back:\s*([\s\S]*?)(?=front:|$)/gi;
+          const matches = Array.from(content.matchAll(cardRegex));
+          
+          matches.slice(0, options.maxCards).forEach((match) => {
+            const front = match[1].trim();
+            const back = match[2].trim();
+            
+            if (front && back) {
+              flashcards.push({
+                id: uuidv4(),
+                front,
+                back,
+                tags: note.tags || [],
+                createdAt: new Date()
+              });
+            }
+          });
+        }
+        
+        // Third attempt: Look for "Q:" and "A:" or "Question:" and "Answer:"
+        if (flashcards.length < Math.min(options.maxCards, 1)) {
+          console.log("Trying Q/A format");
+          const qaRegex = /(?:q(?:uestion)?[\s\d]*?[:.]\s*)([\s\S]*?)(?:a(?:nswer)?[\s\d]*?[:.]\s*)([\s\S]*?)(?=q(?:uestion)?[\s\d]*?[:.:]|$)/gi;
+          const qaMatches = Array.from(content.matchAll(qaRegex));
+          
+          qaMatches.slice(0, options.maxCards - flashcards.length).forEach((match) => {
+            const front = match[1].trim();
+            const back = match[2].trim();
+            
+            if (front && back) {
+              flashcards.push({
+                id: uuidv4(),
+                front,
+                back,
+                tags: note.tags || [],
+                createdAt: new Date()
+              });
+            }
+          });
+        }
+        
+        // Fourth attempt: Look for numbered items in format "1. Question" followed by explanation
+        if (flashcards.length < Math.min(options.maxCards, 1)) {
+          console.log("Trying numbered format");
+          const numberedLines = content.split(/\n+/).filter(line => line.trim().length > 0);
+          
+          // Look for patterns like "1. Question" followed by explanation text
+          for (let i = 0; i < numberedLines.length; i++) {
+            if (i + 1 < numberedLines.length) {
+              const line = numberedLines[i];
+              const nextLine = numberedLines[i + 1];
+              
+              // Check if this is a numbered line
+              if (/^\d+\./.test(line) && !/^\d+\./.test(nextLine)) {
+                // This looks like a question followed by answer
+                const front = line.replace(/^\d+\.\s*/, '').trim();
+                const back = nextLine.trim();
+                
+                if (front && back && front.length > 3 && back.length > 3) {
+                  flashcards.push({
+                    id: uuidv4(),
+                    front,
+                    back,
+                    tags: note.tags || [],
+                    createdAt: new Date()
+                  });
+                  
+                  // Skip the next line since we used it as the answer
+                  i++;
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // If we still didn't get enough flashcards, try a final approach as a last resort
+      if (flashcards.length < 1) {
+        console.warn("All parsing approaches failed, using general text splitting as last resort");
+        
+        // Try to split by double newlines or markers like ---, ***, etc.
+        const sections = content
+          .split(/\n\s*\n|\*\*\*|\-\-\-|\d+\.\s+|\n\d+\.\s+/g)
+          .map(s => s.trim())
+          .filter(s => s.length > 10); // Only keep substantial sections
+        
+        for (let i = 0; i < Math.min(sections.length, options.maxCards * 2); i += 2) {
+          if (i + 1 < sections.length) {
+            const front = sections[i];
+            const back = sections[i + 1];
+            
+            if (front && back && front.length > 5 && back.length > 5) {
+              flashcards.push({
+                id: uuidv4(),
+                front,
+                back,
+                tags: note.tags || [],
+                createdAt: new Date()
+              });
+            }
+          }
+        }
+        
+        // If still no flashcards, split the content into chunks and create cards
+        if (flashcards.length < 1 && content.length > 50) {
+          console.warn("Last resort: creating flashcards from content chunks");
+          
+          // Split the content into paragraphs
+          const paragraphs = content.split(/\n+/)
+            .map(p => p.trim())
+            .filter(p => p.length > 15);
+          
+          // Create flashcards from consecutive paragraphs
+          for (let i = 0; i < Math.min(paragraphs.length, options.maxCards); i++) {
+            const paragraph = paragraphs[i];
+            
+            // If it's a long paragraph, turn it into a Q&A
+            if (paragraph.length > 40) {
+              // Extract a question from the paragraph
+              const questionPart = paragraph.substring(0, Math.min(paragraph.length, 100));
+              const answerPart = paragraph;
+              
+              flashcards.push({
+                id: uuidv4(),
+                front: `What is described in this excerpt: "${questionPart.substring(0, 50)}..."?`,
+                back: answerPart,
+                tags: note.tags || [],
+                createdAt: new Date()
+              });
+            }
+          }
+        }
+      }
+      
+      console.log(`Successfully parsed ${flashcards.length} flashcards`);
+      if (flashcards.length === 0) {
+        console.error("Failed to parse any flashcards from content:", content);
+      }
+      
+      return flashcards.slice(0, options.maxCards);
+    } catch (error) {
+      console.error('Error in generateFlashcardsWithLLM:', error);
+      throw error;
     }
   };
 
   const handleGenerate = async () => {
     if (!noteId) {
       alert('Please select a note first');
+      return;
+    }
+    
+    // Check for API key
+    const apiKey = localStorage.getItem('openRouterApiKey');
+    if (!apiKey) {
+      alert('Please add an OpenRouter API key in settings to use flashcard generation');
       return;
     }
     
@@ -86,11 +451,58 @@ export default function FlashcardGenerator({
         temperature
       };
       
-      const flashcards = await generateFlashcardsWithLLM(options);
-      onFlashcardsGenerated(flashcards);
+      console.log(`Starting flashcard generation for note ID: ${noteId}, card type: ${cardType}`);
+      
+      // Wrap the entire process in a try-catch for extra safety
+      try {
+        const flashcards = await generateFlashcardsWithLLM(options);
+        
+        if (flashcards && Array.isArray(flashcards) && flashcards.length > 0) {
+          console.log(`Generated ${flashcards.length} flashcards successfully`);
+          onFlashcardsGenerated(flashcards);
+        } else {
+          console.error("No flashcards generated - empty array or invalid result");
+          throw new Error("No valid flashcards were generated");
+        }
+      } catch (innerError) {
+        console.error('Error during flashcard generation process:', innerError);
+        
+        // Try one more time with a simpler prompt as a fallback
+        console.log("Attempting flashcard generation with a simplified approach");
+        
+        try {
+          // Create a simpler prompt for the fallback attempt
+          const fallbackOptions = { 
+            ...options, 
+            template: cardType === 'Cloze' 
+              ? "Create simple cloze deletion cards with terms in [square brackets]." 
+              : "Create basic question and answer cards."
+          };
+          
+          const fallbackCards = await generateFlashcardsWithLLM(fallbackOptions);
+          
+          if (fallbackCards && fallbackCards.length > 0) {
+            console.log(`Generated ${fallbackCards.length} flashcards with fallback approach`);
+            onFlashcardsGenerated(fallbackCards);
+            return;
+          }
+        } catch (fallbackError) {
+          console.error('Fallback generation also failed:', fallbackError);
+          // Continue to the error message below
+        }
+        
+        // If we get here, both attempts failed
+        alert(`No flashcards could be generated. This may be due to:
+- The AI model's response format was unexpected
+- The note content was too short or unclear
+- There was an issue with the API
+
+Please try again with different settings or a different note.`);
+      }
     } catch (error) {
-      console.error('Error generating flashcards:', error);
-      alert('Failed to generate flashcards. Please try again.');
+      console.error('Error in overall flashcard generation process:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to generate flashcards: ${errorMessage}\n\nPlease check your API key and try again.`);
     } finally {
       setIsGenerating(false);
     }
@@ -212,4 +624,59 @@ export default function FlashcardGenerator({
       </div>
     </div>
   );
-} 
+}
+
+const parseRawTextIntoFlashcards = (text: string, tags: string[], cardType: CardType, maxCards: number): Flashcard[] => {
+  const flashcards: Flashcard[] = [];
+  
+  if (cardType === 'Cloze') {
+    // For cloze, find any text with square brackets
+    const clozeMatches = text.match(/[^.!?]+\[[^\]]+\][^.!?]*[.!?]/g) || [];
+    
+    clozeMatches.slice(0, maxCards).forEach(match => {
+      if (match.includes('[') && match.includes(']')) {
+        flashcards.push({
+          id: uuidv4(),
+          front: match.trim(),
+          back: match.replace(/\[([^\]]+)\]/g, '$1').trim(),
+          tags: tags,
+          createdAt: new Date()
+        });
+      }
+    });
+  } else {
+    // For basic cards, split by double newlines or numbered items
+    const sections = text.split(/\n\s*\n|\d+\.\s+/g)
+      .map(s => s.trim())
+      .filter(s => s.length > 10);
+    
+    for (let i = 0; i < Math.min(sections.length, maxCards * 2); i += 2) {
+      if (i + 1 < sections.length) {
+        flashcards.push({
+          id: uuidv4(),
+          front: sections[i],
+          back: sections[i + 1],
+          tags: tags,
+          createdAt: new Date()
+        });
+      }
+    }
+  }
+  
+  // If all else fails, create single cards from paragraphs
+  if (flashcards.length === 0) {
+    const paragraphs = text.split(/\n+/).map(p => p.trim()).filter(p => p.length > 30);
+    
+    paragraphs.slice(0, maxCards).forEach(p => {
+      flashcards.push({
+        id: uuidv4(),
+        front: `Summarize this information: "${p.substring(0, 40)}..."`,
+        back: p,
+        tags: tags,
+        createdAt: new Date()
+      });
+    });
+  }
+  
+  return flashcards.slice(0, maxCards);
+}; 
