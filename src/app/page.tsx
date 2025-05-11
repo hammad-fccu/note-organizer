@@ -22,7 +22,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
       <header className="flex justify-between items-center p-4 max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold">Smart Note Organizer</h1>
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">Notematic</h1>
         <div className="flex items-center space-x-4">
           <ThemeToggle />
           {!isLoading && !session && (
@@ -222,8 +222,7 @@ export default function Home() {
       
       <footer className="p-8 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-center text-gray-600 dark:text-gray-400">
         <div className="max-w-6xl mx-auto">
-          <p>© {new Date().getFullYear()} Smart Note Organizer. All rights reserved.</p>
-          <p className="mt-2 text-sm">Created for CS Program Coding Jam</p>
+          <p>© {new Date().getFullYear()} Notematic. All rights reserved.</p>
         </div>
       </footer>
     </div>
