@@ -144,7 +144,7 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
       {/* Instructions Panel as a separate component above the import form */}
       {showInstructions && (
         <div className="mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-blue-200 dark:border-blue-800">
-          <div className="p-4 dark:border-b dark:border-blue-800 dark:bg-blue-900/40" 
+          <div className="p-4 dark:border-b-0 dark:bg-blue-900/40" 
                style={{ backgroundColor: isDarkMode ? undefined : '#f0f7ff' }}>
             <h3 className="text-md font-semibold mb-2 dark:text-blue-300"
                 style={{ color: isDarkMode ? undefined : '#1e40af' }}>How to Import Flashcards</h3>
@@ -331,15 +331,15 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
           )}
           
           {isPreviewVisible && previewCards.length === 0 && (
-            <div className="p-4 bg-red-100 dark:bg-red-900/30 rounded-md mb-4 border border-red-200 dark:border-red-800">
-              <p className="text-red-600 dark:text-red-300 font-medium">
-                No valid flashcards found. Please check your format.
-              </p>
-              <p className="text-sm text-red-500 dark:text-red-400 mt-1">
-                Make sure each card follows the format: {isAnkiFormat 
-                  ? "Anki export format"
-                  : "Q: question, A: answer"}
-              </p>
+            <div className="p-4 bg-white dark:bg-gray-800 rounded-md mb-4 border-2 border-red-400 shadow-sm">
+              <div className="flex flex-col">
+                <p className="text-red-600 dark:text-red-300 font-semibold">
+                  No valid flashcards found. Please check your format.
+                </p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                  Make sure each card follows the Q: question, A: answer format or is a valid Anki export file.
+                </p>
+              </div>
             </div>
           )}
         </div>

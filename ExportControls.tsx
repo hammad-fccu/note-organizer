@@ -1,37 +1,16 @@
-'use client';
-
 import { useState } from 'react';
 import { Flashcard } from '@/types/flashcards';
-import { saveAs } from 'file-saver';
-import { useRouter } from 'next/navigation';
-import { FlashcardReview } from '@/types/flashcards';
-import { v4 as uuidv4 } from 'uuid';
 
 interface ExportControlsProps {
   flashcards: Flashcard[];
   deckName: string;
-  modelName?: string;
+  modelName: string; // basic, basic-reversed, cloze
 }
 
-export default function ExportControls({ flashcards, deckName, modelName = 'Basic' }: ExportControlsProps) {
-  const router = useRouter();
+export default function ExportControls({ flashcards, deckName, modelName }: ExportControlsProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState<boolean | null>(null);
-  const [exportFormat, setExportFormat] = useState<'txt' | 'practice'>('txt');
-
-  // Convert flashcards to the format needed for practice mode
-  const convertToPracticeFormat = (cards: Flashcard[]): FlashcardReview[] => {
-    return cards.map(card => ({
-      id: uuidv4(),
-      deckId: deckName.trim().toLowerCase().replace(/\s+/g, '-'),
-      front: card.front,
-      back: card.back,
-      tags: card.tags || [],
-      dueDate: new Date().toISOString(),
-      reviewCount: 0
-    }));
-  };
-
+  
   // Convert our model name to Anki model name
   const getAnkiModelName = (): string => {
     switch(modelName) {
@@ -94,47 +73,21 @@ export default function ExportControls({ flashcards, deckName, modelName = 'Basi
     return tsv;
   };
   
-  // Export as Anki-compatible text format
-  const exportAsText = () => {
-    try {
-      const tsv = generateTSV();
-      const blob = new Blob([tsv], { type: 'text/tab-separated-values;charset=utf-8;' });
-      saveAs(blob, `${deckName.replace(/\s+/g, '-').toLowerCase()}_anki_cards.txt`);
-      
-      setExportSuccess(true);
-      setTimeout(() => setExportSuccess(null), 3000);
-    } catch (error) {
-      console.error('Error exporting as Anki format:', error);
-      setExportSuccess(false);
-    }
-  };
-  
-  // Export to practice mode - convert and navigate to practice page
-  const exportToPractice = () => {
-    try {
-      // Convert flashcards to practice format
-      const practiceCards = convertToPracticeFormat(flashcards);
-      
-      // Save to localStorage
-      const savedDecksJSON = localStorage.getItem('practice_flashcard_decks');
-      let savedDecks = savedDecksJSON ? JSON.parse(savedDecksJSON) : {};
-      
-      // Add or update the deck
-      const deckId = deckName.trim().toLowerCase().replace(/\s+/g, '-');
-      savedDecks[deckId] = practiceCards;
-      
-      // Save back to localStorage
-      localStorage.setItem('practice_flashcard_decks', JSON.stringify(savedDecks));
-      
-      // Navigate to practice page
-      router.push('/app/practice-flashcards');
-      
-      setExportSuccess(true);
-      setTimeout(() => setExportSuccess(null), 3000);
-    } catch (error) {
-      console.error('Error adding to practice mode:', error);
-      setExportSuccess(false);
-    }
+  // Function to handle TSV download
+  const downloadAnkiFile = () => {
+    const tsv = generateTSV();
+    const blob = new Blob([tsv], { type: 'text/tab-separated-values;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", url);
+    downloadAnchorNode.setAttribute("download", `${deckName.replace(/\s+/g, '-').toLowerCase()}_anki_cards.txt`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+    
+    setExportSuccess(true);
+    setTimeout(() => setExportSuccess(null), 3000);
+    URL.revokeObjectURL(url);
   };
   
   const handleExport = async () => {
@@ -147,14 +100,7 @@ export default function ExportControls({ flashcards, deckName, modelName = 'Basi
     setIsExporting(true);
     
     try {
-      switch (exportFormat) {
-        case 'txt':
-          exportAsText();
-          break;
-        case 'practice':
-          exportToPractice();
-          break;
-      }
+      downloadAnkiFile();
     } catch (error) {
       console.error('Error exporting flashcards:', error);
       alert(error instanceof Error ? error.message : 'Failed to export flashcards. Please try again.');
@@ -163,7 +109,7 @@ export default function ExportControls({ flashcards, deckName, modelName = 'Basi
       setIsExporting(false);
     }
   };
-
+  
   if (flashcards.length === 0) {
     return null;
   }
@@ -173,7 +119,7 @@ export default function ExportControls({ flashcards, deckName, modelName = 'Basi
       <h2 className="text-lg font-medium mb-4">Export Flashcards</h2>
       
       <div className="space-y-6">
-        {/* Status Message */}
+        {/* Success/error message */}
         {exportSuccess !== null && (
           <div className={`p-3 rounded-md border-[3px] ${exportSuccess 
             ? 'bg-white dark:bg-gray-800 !border-green-500' 
@@ -208,40 +154,6 @@ export default function ExportControls({ flashcards, deckName, modelName = 'Basi
           </div>
         </div>
         
-        {/* Export Format */}
-        <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-            Export Format
-          </label>
-          <div className="flex space-x-3">
-            <button
-              onClick={() => setExportFormat('txt')}
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
-                exportFormat === 'txt'
-                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              Text File
-            </button>
-            <button
-              onClick={() => setExportFormat('practice')}
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
-                exportFormat === 'practice'
-                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              Practice Mode
-            </button>
-          </div>
-          
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            {exportFormat === 'txt' && "Exports in Anki format that can be directly imported into Anki."}
-            {exportFormat === 'practice' && "Adds these cards to Practice Mode for immediate review within the app."}
-          </p>
-        </div>
-        
         {/* Export Button */}
         <div className="flex justify-center">
           <button
@@ -249,7 +161,7 @@ export default function ExportControls({ flashcards, deckName, modelName = 'Basi
             disabled={isExporting || flashcards.length === 0}
             className={`
               px-6 py-2 rounded-md font-medium flex items-center justify-center min-w-[200px]
-              ${isExporting || flashcards.length === 0 
+              ${isExporting || flashcards.length === 0
                 ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' 
                 : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow transition-all'}
             `}
@@ -264,7 +176,10 @@ export default function ExportControls({ flashcards, deckName, modelName = 'Basi
               </>
             ) : (
               <>
-                {exportFormat === 'practice' ? 'Add to Practice Mode' : 'Export Flashcards'}
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Download for Anki
               </>
             )}
           </button>
