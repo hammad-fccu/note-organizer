@@ -126,8 +126,11 @@ export default function ExportControls({ flashcards, deckName, modelName = 'Basi
       // Save back to localStorage
       localStorage.setItem('practice_flashcard_decks', JSON.stringify(savedDecks));
       
-      // Navigate to practice page
-      router.push('/app/practice-flashcards');
+      // Only navigate if we're not already on the practice-flashcards page
+      // Check if the current path already includes practice-flashcards
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/app/practice-flashcards')) {
+        router.push('/app/practice-flashcards');
+      }
       
       setExportSuccess(true);
       setTimeout(() => setExportSuccess(null), 3000);
