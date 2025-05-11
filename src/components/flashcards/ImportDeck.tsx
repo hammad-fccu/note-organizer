@@ -12,6 +12,7 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
   const [previewCards, setPreviewCards] = useState<FlashcardReview[]>([]);
   const [importMethod, setImportMethod] = useState<'paste' | 'file'>('paste');
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
   
   // Check for dark mode on mount and when theme changes
   useEffect(() => {
@@ -31,6 +32,22 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
     });
     
     return () => observer.disconnect();
+  }, []);
+  
+  // Add event listener for toggle instructions
+  useEffect(() => {
+    const parentContainer = document.getElementById('import-deck-container');
+    if (!parentContainer) return;
+    
+    const handleToggleInstructions = () => {
+      setShowInstructions(prev => !prev);
+    };
+    
+    parentContainer.addEventListener('toggle-instructions', handleToggleInstructions);
+    
+    return () => {
+      parentContainer.removeEventListener('toggle-instructions', handleToggleInstructions);
+    };
   }, []);
   
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -93,57 +110,46 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
   
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-      {/* Instructions Panel with correct styling */}
-      <div className="p-4 border-b border-blue-200 dark:border-blue-800 dark:bg-blue-900/40" 
-           style={{ backgroundColor: isDarkMode ? undefined : '#f0f7ff' }}>
-        <h3 className="text-md font-semibold mb-2 dark:text-blue-300"
-            style={{ color: isDarkMode ? undefined : '#1e40af' }}>How to Import Flashcards</h3>
-        <p className="text-sm mb-2 dark:text-blue-300"
-           style={{ color: isDarkMode ? undefined : '#1e3a8a' }}>
-          Import flashcards in Q&A format from a text file or paste them directly.
-        </p>
-        <div className="text-xs dark:text-blue-300"
+      {/* Instructions Panel - Now conditionally rendered */}
+      {showInstructions && (
+        <div className="p-4 border border-blue-200 dark:border-blue-800 dark:bg-blue-900/40 rounded-lg mb-4" 
+             style={{ backgroundColor: isDarkMode ? undefined : '#f0f7ff' }}>
+          <h3 className="text-md font-semibold mb-2 dark:text-blue-300"
+              style={{ color: isDarkMode ? undefined : '#1e40af' }}>How to Import Flashcards</h3>
+          <p className="text-sm mb-2 dark:text-blue-300"
              style={{ color: isDarkMode ? undefined : '#1e3a8a' }}>
-          <p className="font-medium mb-1">Supported format:</p>
-          <div className="mt-1 p-3 bg-white dark:bg-gray-800 rounded border border-blue-200 dark:border-blue-700 overflow-x-auto shadow-sm">
-            <div className="font-mono dark:text-gray-100" 
-                 style={{ color: isDarkMode ? undefined : '#1f2937' }}>
-              <div className="mb-1">
-                <span className="font-semibold dark:text-green-400" 
-                      style={{ color: isDarkMode ? undefined : '#059669' }}>Q:</span> What is the capital of France?
-              </div>
-              <div className="mb-3">
-                <span className="font-semibold dark:text-blue-400" 
-                      style={{ color: isDarkMode ? undefined : '#2563eb' }}>A:</span> Paris
-              </div>
-              <div className="mb-1">
-                <span className="font-semibold dark:text-green-400" 
-                      style={{ color: isDarkMode ? undefined : '#059669' }}>Q:</span> What is the largest planet in our solar system?
-              </div>
-              <div>
-                <span className="font-semibold dark:text-blue-400" 
-                      style={{ color: isDarkMode ? undefined : '#2563eb' }}>A:</span> Jupiter
+            Import flashcards in Q&A format from a text file or paste them directly.
+          </p>
+          <div className="text-xs dark:text-blue-300"
+               style={{ color: isDarkMode ? undefined : '#1e3a8a' }}>
+            <p className="font-medium mb-1">Supported format:</p>
+            <div className="mt-1 p-3 bg-white dark:bg-gray-800 rounded border border-blue-200 dark:border-blue-700 overflow-x-auto shadow-sm">
+              <div className="font-mono dark:text-gray-100" 
+                   style={{ color: isDarkMode ? undefined : '#1f2937' }}>
+                <div className="mb-1">
+                  <span className="font-semibold dark:text-green-400" 
+                        style={{ color: isDarkMode ? undefined : '#059669' }}>Q:</span> What is the capital of France?
+                </div>
+                <div className="mb-3">
+                  <span className="font-semibold dark:text-blue-400" 
+                        style={{ color: isDarkMode ? undefined : '#2563eb' }}>A:</span> Paris
+                </div>
+                <div className="mb-1">
+                  <span className="font-semibold dark:text-green-400" 
+                        style={{ color: isDarkMode ? undefined : '#059669' }}>Q:</span> What is the largest planet in our solar system?
+                </div>
+                <div>
+                  <span className="font-semibold dark:text-blue-400" 
+                        style={{ color: isDarkMode ? undefined : '#2563eb' }}>A:</span> Jupiter
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
       
       <div className="p-6">
-        {/* Deck Name */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Deck Name</label>
-          <input
-            type="text"
-            value={deckName}
-            onChange={(e) => setDeckName(e.target.value)}
-            placeholder="Enter a name for this deck"
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            required
-          />
-        </div>
-        
-        {/* Import Method Tabs */}
+        {/* Import Method Tabs - Moved to top */}
         <div className="mb-4">
           <div className="flex border-b border-gray-200 dark:border-gray-700">
             <button
@@ -167,6 +173,19 @@ export default function ImportDeck({ onImport }: { onImport: (cards: FlashcardRe
               Upload File
             </button>
           </div>
+        </div>
+        
+        {/* Deck Name */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Deck Name</label>
+          <input
+            type="text"
+            value={deckName}
+            onChange={(e) => setDeckName(e.target.value)}
+            placeholder="Enter a name for this deck"
+            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            required
+          />
         </div>
         
         {/* Import Methods */}
