@@ -71,6 +71,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <Link href="/app" className="text-xl font-bold">Smart Note Organizer</Link>
             </div>
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               {!isDashboard && (
                 <Link
                   href="/app"
@@ -82,7 +83,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </svg>
                 </Link>
               )}
-              <ThemeToggle />
               <div className="relative user-menu-container">
                 <button 
                   onClick={() => setUserMenuOpen(!userMenuOpen)} 

@@ -4,8 +4,6 @@ import { useDropzone } from 'react-dropzone';
 interface FileUploaderProps {
   onFilesAccepted: (files: File[]) => void;
   accept?: Record<string, string[]>;
-  maxFiles?: number;
-  maxSize?: number;
   isLoading?: boolean;
 }
 
@@ -16,8 +14,6 @@ export default function FileUploader({
     'text/plain': ['.txt'],
     'text/markdown': ['.md'],
   },
-  maxFiles = 5,
-  maxSize = 10 * 1024 * 1024, // 10MB
   isLoading = false,
 }: FileUploaderProps) {
   const [error, setError] = useState<string | null>(null);
@@ -33,14 +29,9 @@ export default function FileUploader({
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,
     accept,
-    maxFiles,
-    maxSize,
     disabled: isLoading,
     onDropRejected: (fileRejections) => {
       const errors = fileRejections.map(rejection => {
-        if (rejection.errors.some(e => e.code === 'file-too-large')) {
-          return `${rejection.file.name} is too large (max ${Math.round(maxSize / 1024 / 1024)}MB)`;
-        }
         if (rejection.errors.some(e => e.code === 'file-invalid-type')) {
           return `${rejection.file.name} is not an accepted file type`;
         }
@@ -88,7 +79,7 @@ export default function FileUploader({
                 {isDragActive ? 'Drop files here' : 'Drag & drop files here'}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Supports PDF, TXT, and MD files (max {maxFiles} files, up to {Math.round(maxSize / 1024 / 1024)}MB each)
+                Supports PDF, TXT, and MD files
               </p>
               <p className="mt-2 text-xs text-blue-500">
                 Or click to browse files

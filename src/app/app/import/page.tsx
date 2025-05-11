@@ -288,7 +288,7 @@ export default function ImportPage() {
                 {hasApiKey === null ? (
                   "Checking API key status..."
                 ) : hasApiKey ? (
-                  "The app will automatically generate relevant tags based on content"
+                  "Relevant tags will be generated based on content (if API key is set in settings)"
                 ) : (
                   <span className="text-amber-600 dark:text-amber-400">
                     Add an OpenRouter API key in settings to enable automatic tag generation
