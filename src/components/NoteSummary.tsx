@@ -98,7 +98,7 @@ export default function NoteSummary({ noteContent, onSummarize, existingSummary 
             </div>
           </div>
           
-          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-800 dark:text-gray-200">
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-gray-200">
             {existingSummary.type === 'bullets' ? (
               <ul className="list-disc list-inside">
                 {existingSummary.text.split('\n').map((bullet, i) => (

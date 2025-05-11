@@ -315,7 +315,7 @@ export default function NotePage({ params }: NotePageProps) {
               }).catch(err => console.error('Tag generation error:', err));
             }}
             disabled={isGeneratingTags || !content}
-            className={`px-3 py-1 bg-gray-800 text-blue-400 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all hover:shadow-[0_0_12px_rgba(59,130,246,0.6)] min-w-fit ${isGeneratingTags ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-3 py-1 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm border border-blue-200 dark:border-transparent shadow-[0_0_12px_rgba(59,130,246,0.2),0_0_4px_rgba(59,130,246,0.3)] dark:shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all hover:shadow-[0_0_16px_rgba(59,130,246,0.3),0_0_6px_rgba(59,130,246,0.4)] dark:hover:shadow-[0_0_12px_rgba(59,130,246,0.6)] ${isGeneratingTags ? 'opacity-50 cursor-not-allowed' : ''}`}
             title="Generate or enhance tags based on note content"
           >
             {isGeneratingTags ? (
@@ -494,7 +494,7 @@ export default function NotePage({ params }: NotePageProps) {
                     }).catch(err => console.error('Tag generation error:', err));
                   }}
                   disabled={isGeneratingTags || !content}
-                  className={`px-3 py-1 bg-gray-800 text-blue-400 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all hover:shadow-[0_0_12px_rgba(59,130,246,0.6)] ${isGeneratingTags ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`px-3 py-1 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm border border-blue-200 dark:border-transparent shadow-[0_0_12px_rgba(59,130,246,0.2),0_0_4px_rgba(59,130,246,0.3)] dark:shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all hover:shadow-[0_0_16px_rgba(59,130,246,0.3),0_0_6px_rgba(59,130,246,0.4)] dark:hover:shadow-[0_0_12px_rgba(59,130,246,0.6)] ${isGeneratingTags ? 'opacity-50 cursor-not-allowed' : ''}`}
                   title="Auto-generate tags based on content"
                 >
                   {isGeneratingTags ? (
