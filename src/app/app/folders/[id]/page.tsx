@@ -11,9 +11,10 @@ interface FolderPageProps {
   params: {
     id: string;
   };
+  searchParams: { [key: string]: string | string[] | undefined };
 }
 
-export default function FolderPage({ params }: FolderPageProps) {
+export default function FolderPage({ params, searchParams }: FolderPageProps) {
   const { id } = params;
   const router = useRouter();
   const { 
