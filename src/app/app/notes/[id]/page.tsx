@@ -444,15 +444,26 @@ export default function NotePage({ params }: NotePageProps) {
               </svg>
             </button>
           ) : (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="p-2 rounded-full text-blue-500 hover:text-blue-600"
-              title="Edit note"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-              </svg>
-            </button>
+            <>
+              <button
+                onClick={() => setIsEditing(true)}
+                className="p-2 rounded-full text-blue-500 hover:text-blue-600"
+                title="Edit note"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+              </button>
+              <Link 
+                href={`/app/practice-flashcards?tab=generate&noteId=${id}`}
+                className="p-2 rounded-full text-yellow-500 hover:text-yellow-600"
+                title="Generate flashcards from this note"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+              </Link>
+            </>
           )}
           <button
             onClick={handleDelete}
@@ -567,19 +578,21 @@ export default function NotePage({ params }: NotePageProps) {
               </div>
             </div>
             
-            <div className="flex space-x-3 mt-6">
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+              <Link
+                href={`/app/practice-flashcards?tab=generate&noteId=${id}`}
+                className="px-3 py-1 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm border border-blue-200 dark:border-transparent shadow-[0_0_12px_rgba(59,130,246,0.2),0_0_4px_rgba(59,130,246,0.3)] dark:shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all hover:shadow-[0_0_16px_rgba(59,130,246,0.3),0_0_6px_rgba(59,130,246,0.4)] dark:hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]"
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                Generate Flashcards
+              </Link>
               <button
                 onClick={handleSave}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 Save Changes
-              </button>
-              
-              <button
-                onClick={() => setIsEditing(false)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                Cancel
               </button>
             </div>
           </div>
@@ -608,7 +621,16 @@ export default function NotePage({ params }: NotePageProps) {
               }
             ]} />
             
-            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+              <Link
+                href={`/app/practice-flashcards?tab=generate&noteId=${id}`}
+                className="px-3 py-1 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm border border-blue-200 dark:border-transparent shadow-[0_0_12px_rgba(59,130,246,0.2),0_0_4px_rgba(59,130,246,0.3)] dark:shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all hover:shadow-[0_0_16px_rgba(59,130,246,0.3),0_0_6px_rgba(59,130,246,0.4)] dark:hover:shadow-[0_0_12px_rgba(59,130,246,0.6)]"
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                Generate Flashcards
+              </Link>
               <button
                 onClick={() => setIsEditing(true)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"

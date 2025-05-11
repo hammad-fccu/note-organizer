@@ -6,6 +6,8 @@ import FlashcardPractice from '@/components/flashcards/FlashcardPractice';
 import ImportDeck from '@/components/flashcards/ImportDeck';
 import { FlashcardReview } from '@/types/flashcards';
 import { v4 as uuidv4 } from 'uuid';
+import { GeneratorTab } from '@/components/flashcards/FlashcardGenerator';
+import { useSearchParams } from 'next/navigation';
 
 enum PracticeMode {
   IMPORT = 'import',
@@ -47,6 +49,15 @@ export default function PracticeFlashcardsPage() {
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('decks');
+  const searchParams = useSearchParams();
+  
+  // Set the active tab based on URL parameter
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['decks', 'import', 'generate'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
   
   // Load saved flashcards from localStorage
   useEffect(() => {
@@ -218,6 +229,18 @@ export default function PracticeFlashcardsPage() {
                   Import New Deck
                 </button>
               </li>
+              <li className="mr-2">
+                <button 
+                  className={`inline-block p-4 border-b-2 rounded-t-lg ${
+                    activeTab === 'generate' 
+                      ? 'text-blue-600 border-blue-600 dark:text-blue-500 dark:border-blue-500' 
+                      : 'hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 border-transparent'
+                  }`}
+                  onClick={() => setActiveTab('generate')}
+                >
+                  Generate
+                </button>
+              </li>
             </ul>
           </div>
           
@@ -229,6 +252,13 @@ export default function PracticeFlashcardsPage() {
                 <div id="import-deck-container">
                   <ImportDeck onImport={handleImportCards} />
                 </div>
+              </div>
+            )}
+            
+            {/* Generate Tab */}
+            {activeTab === 'generate' && (
+              <div>
+                <GeneratorTab />
               </div>
             )}
             

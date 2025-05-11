@@ -3,6 +3,8 @@ import { Flashcard, GeneratorOptions, CardType } from '@/types/flashcards';
 import { v4 as uuidv4 } from 'uuid';
 import { useNotes } from '@/store/NoteStore';
 import InfoModal from '@/components/InfoModal';
+import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 
 interface FlashcardGeneratorProps {
   noteId: string;
@@ -704,4 +706,24 @@ const parseRawTextIntoFlashcards = (text: string, tags: string[], cardType: Card
   }
   
   return flashcards.slice(0, maxCards);
-}; 
+};
+
+// This is a wrapper component for using the flashcard generator in the practice-flashcards page
+// It's added at the end of the file to avoid modifying any existing code
+export function GeneratorTab() {
+  // Get the noteId from the URL if present
+  const searchParams = useSearchParams();
+  const noteId = searchParams.get('noteId');
+  
+  // Import the FlashcardsPage component dynamically to avoid circular dependencies
+  const FlashcardsPageComponent = dynamic(() => import('@/app/app/flashcards/page').then((mod) => {
+    const Component = mod.default;
+    return (props: any) => <Component {...props} />;
+  }), {
+    loading: () => <div className="p-8 flex justify-center items-center">
+      <div className="w-8 h-8 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin"></div>
+    </div>
+  });
+  
+  return <FlashcardsPageComponent preselectedNoteId={noteId} />;
+} 

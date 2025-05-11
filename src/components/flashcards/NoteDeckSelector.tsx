@@ -5,11 +5,12 @@ import { getTagStyle } from '@/utils/tagColors';
 interface NoteDeckSelectorProps {
   onNoteSelected: (noteId: string) => void;
   onDeckNameChanged: (deckName: string) => void;
+  preselectedNoteId?: string;
 }
 
-export default function NoteDeckSelector({ onNoteSelected, onDeckNameChanged }: NoteDeckSelectorProps) {
+export default function NoteDeckSelector({ onNoteSelected, onDeckNameChanged, preselectedNoteId }: NoteDeckSelectorProps) {
   const { notes } = useNotes();
-  const [selectedNoteId, setSelectedNoteId] = useState<string>('');
+  const [selectedNoteId, setSelectedNoteId] = useState<string>(preselectedNoteId || '');
   const [deckName, setDeckName] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
@@ -22,6 +23,13 @@ export default function NoteDeckSelector({ onNoteSelected, onDeckNameChanged }: 
   
   // Get the selected note
   const selectedNote = notes.find(note => note.id === selectedNoteId);
+  
+  // Handle preselected note ID when the component mounts or when preselectedNoteId changes
+  useEffect(() => {
+    if (preselectedNoteId && preselectedNoteId !== selectedNoteId) {
+      setSelectedNoteId(preselectedNoteId);
+    }
+  }, [preselectedNoteId]);
   
   // Get all unique tags
   const allTags = useMemo(() => {

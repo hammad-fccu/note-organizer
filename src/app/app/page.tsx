@@ -123,7 +123,7 @@ export default function AppDashboard() {
           </Link>
           
           <Link 
-            href="/app/flashcards" 
+            href="/app/practice-flashcards?tab=generate" 
             className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-500 dark:text-yellow-300 mr-4">

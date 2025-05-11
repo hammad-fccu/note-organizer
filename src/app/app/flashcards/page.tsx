@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNotes } from '@/store/NoteStore';
 import { Flashcard, CardType, FieldMapping } from '@/types/flashcards';
 
@@ -11,9 +11,13 @@ import FlashcardGenerator from '@/components/flashcards/FlashcardGenerator';
 import FlashcardTable from '@/components/flashcards/FlashcardTable';
 import ExportControls from '@/components/flashcards/ExportControls';
 
-export default function FlashcardsPage() {
+interface FlashcardsPageProps {
+  preselectedNoteId?: string | null;
+}
+
+export default function FlashcardsPage({ preselectedNoteId }: FlashcardsPageProps = {}) {
   // State for the flashcard generation flow
-  const [selectedNoteId, setSelectedNoteId] = useState<string>('');
+  const [selectedNoteId, setSelectedNoteId] = useState<string>(preselectedNoteId || '');
   const [deckName, setDeckName] = useState<string>('');
   const [cardType, setCardType] = useState<CardType>('Basic');
   const [fieldMapping, setFieldMapping] = useState<FieldMapping>({
@@ -29,6 +33,13 @@ export default function FlashcardsPage() {
   
   // Get the selected note
   const selectedNote = notes.find(note => note.id === selectedNoteId);
+  
+  // Effect to handle preselected note ID
+  useEffect(() => {
+    if (preselectedNoteId) {
+      setSelectedNoteId(preselectedNoteId);
+    }
+  }, [preselectedNoteId]);
   
   // Handlers (memoized with useCallback to prevent unnecessary rerenders)
   const handleNoteSelected = useCallback((noteId: string) => {
@@ -76,6 +87,7 @@ export default function FlashcardsPage() {
           <NoteDeckSelector
             onNoteSelected={handleNoteSelected}
             onDeckNameChanged={handleDeckNameChanged}
+            preselectedNoteId={selectedNoteId}
           />
           
           {/* Card Type & Mapping */}
