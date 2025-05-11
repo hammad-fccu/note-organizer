@@ -11,6 +11,74 @@ import { SummaryType } from '@/utils/aiSummary';
 // Add these imports for the API call
 import { generateTags } from '@/utils/aiSummary';
 
+// Add a function to normalize and deduplicate tags
+const normalizeTags = (tags: string[]): string[] => {
+  // Convert all tags to lowercase for comparison
+  const lowercaseTags = tags.map(tag => tag.toLowerCase().trim());
+  
+  // Create a map of lowercase to preferred case (keeping the first occurrence's casing)
+  const uniqueTags = new Map<string, string>();
+  
+  // First pass: exact matches
+  tags.forEach((tag, index) => {
+    const normalizedTag = lowercaseTags[index];
+    // Only add the first occurrence of each tag (keeping original casing)
+    if (!uniqueTags.has(normalizedTag)) {
+      uniqueTags.set(normalizedTag, tag.trim());
+    }
+  });
+  
+  // Second pass: handle similar tags, plurals, etc.
+  const finalTags = new Map<string, string>();
+  const processedKeys: Set<string> = new Set();
+  
+  Array.from(uniqueTags.entries()).forEach(([key, value]) => {
+    if (processedKeys.has(key)) return;
+    
+    // Check for plural/singular forms (simple s/es suffix)
+    let isMerged = false;
+    for (const [otherKey, otherValue] of uniqueTags.entries()) {
+      if (key === otherKey || processedKeys.has(otherKey)) continue;
+      
+      // Skip if length difference is too large (likely different concepts)
+      if (Math.abs(key.length - otherKey.length) > 3) continue;
+      
+      // Check for plural form
+      if ((key + 's' === otherKey) || (key === otherKey + 's') ||
+          (key + 'es' === otherKey) || (key === otherKey + 'es')) {
+        // Keep the shorter one generally (singular form)
+        const preferred = key.length <= otherKey.length ? value : otherValue;
+        finalTags.set(key.length <= otherKey.length ? key : otherKey, preferred);
+        processedKeys.add(key);
+        processedKeys.add(otherKey);
+        isMerged = true;
+        break;
+      }
+      
+      // Check for hyphenated vs space variants (e.g., "real-time" vs "real time")
+      const keyNoSpace = key.replace(/[-\s]/g, '');
+      const otherKeyNoSpace = otherKey.replace(/[-\s]/g, '');
+      if (keyNoSpace === otherKeyNoSpace) {
+        // Prefer the form with spaces
+        const preferred = key.includes('-') ? otherValue : value;
+        finalTags.set(key.includes('-') ? otherKey : key, preferred);
+        processedKeys.add(key);
+        processedKeys.add(otherKey);
+        isMerged = true;
+        break;
+      }
+    }
+    
+    if (!isMerged && !processedKeys.has(key)) {
+      finalTags.set(key, value);
+      processedKeys.add(key);
+    }
+  });
+  
+  // Return the unique tags with their original casing
+  return Array.from(finalTags.values());
+};
+
 interface NotePageProps {
   params: {
     id: string;
@@ -150,8 +218,11 @@ export default function NotePage({ params }: NotePageProps) {
       
       // If we have existing tags, merge them with the generated ones
       const existingTags = tags ? tags.split(',').map(t => t.trim()).filter(t => t !== '') : [];
-      const mergedTags = [...new Set([...existingTags, ...generatedTags])];
-      const newTagsString = mergedTags.join(', ');
+      const allTags = [...existingTags, ...generatedTags];
+      
+      // Normalize and deduplicate tags
+      const uniqueTags = normalizeTags(allTags);
+      const newTagsString = uniqueTags.join(', ');
       
       console.log('Merged tags string:', newTagsString);
       console.log('Current tags before update:', tags);
@@ -160,7 +231,7 @@ export default function NotePage({ params }: NotePageProps) {
       setTags(newTagsString);
       
       // Make sure to create a clean array of tags for storing in the note
-      const cleanTags = newTagsString.split(',').map(t => t.trim()).filter(t => t !== '');
+      const cleanTags = uniqueTags;
       
       console.log('Clean tags for store update:', cleanTags);
       
@@ -178,7 +249,7 @@ export default function NotePage({ params }: NotePageProps) {
         console.log('Updated note tags from store:', updatedNote.tags);
       }
       
-      return Promise.resolve(mergedTags);
+      return Promise.resolve(cleanTags);
     } catch (error) {
       console.error('Failed to generate tags:', error);
       alert('Failed to generate tags. Please try again later.');
