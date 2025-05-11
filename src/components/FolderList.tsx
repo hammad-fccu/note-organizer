@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useNotes } from '@/store/NoteStore';
 import { Folder } from '@/types/note';
+import ConfirmationModal from './ConfirmationModal';
 
 interface FolderListProps {
   searchTerm?: string;
@@ -15,6 +16,8 @@ export default function FolderList({ searchTerm = '' }: FolderListProps) {
   const [newFolderName, setNewFolderName] = useState('');
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editFolderName, setEditFolderName] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [folderToDelete, setFolderToDelete] = useState<string | null>(null);
 
   // Filter folders based on search term
   const filteredFolders = folders.filter(folder => 
@@ -42,8 +45,15 @@ export default function FolderList({ searchTerm = '' }: FolderListProps) {
   };
 
   const handleDeleteFolder = (folderId: string) => {
-    if (confirm('Are you sure you want to delete this folder? Notes in this folder will be moved back to the main notes section.')) {
-      deleteFolder(folderId);
+    setFolderToDelete(folderId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteFolder = () => {
+    if (folderToDelete) {
+      deleteFolder(folderToDelete);
+      setShowDeleteModal(false);
+      setFolderToDelete(null);
     }
   };
 
@@ -178,6 +188,17 @@ export default function FolderList({ searchTerm = '' }: FolderListProps) {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDeleteFolder}
+        title="Delete Folder"
+        message="Are you sure you want to delete this folder? Notes in this folder will be moved back to the main notes section."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 } 

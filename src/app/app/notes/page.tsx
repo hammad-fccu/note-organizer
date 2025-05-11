@@ -4,12 +4,15 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useNotes } from '@/store/NoteStore';
 import { getTagStyle } from '@/utils/tagColors';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 export default function NotesPage() {
   const { notes, folders, deleteNote, favoriteNote } = useNotes();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'date' | 'title'>('date');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
   
   // Get all unique tags
   const allTags = useMemo(() => {
@@ -43,9 +46,16 @@ export default function NotesPage() {
       });
   }, [notes, searchTerm, selectedTag, sortBy]);
   
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this note?')) {
-      deleteNote(id);
+  const handleDelete = (noteId: string) => {
+    setNoteToDelete(noteId);
+    setShowDeleteModal(true);
+  };
+  
+  const confirmDelete = () => {
+    if (noteToDelete) {
+      deleteNote(noteToDelete);
+      setShowDeleteModal(false);
+      setNoteToDelete(null);
     }
   };
   
@@ -225,6 +235,17 @@ export default function NotesPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Note"
+        message="Are you sure you want to delete this note? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 } 

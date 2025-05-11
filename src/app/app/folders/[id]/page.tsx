@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useNotes } from '@/store/NoteStore';
 import { getTagStyle } from '@/utils/tagColors';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 interface FolderPageProps {
   params: {
@@ -31,6 +32,11 @@ export default function FolderPage({ params }: FolderPageProps) {
   const [sortBy, setSortBy] = useState<'date' | 'title'>('date');
   const [isEditing, setIsEditing] = useState(false);
   const [folderName, setFolderName] = useState('');
+  const [showDeleteFolderModal, setShowDeleteFolderModal] = useState(false);
+  const [showDeleteNoteModal, setShowDeleteNoteModal] = useState(false);
+  const [showRemoveNoteModal, setShowRemoveNoteModal] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
+  const [noteToRemove, setNoteToRemove] = useState<string | null>(null);
   
   // Get folder
   const folder = getFolderById(id);
@@ -74,15 +80,24 @@ export default function FolderPage({ params }: FolderPageProps) {
   };
   
   const handleDeleteFolder = () => {
-    if (confirm('Are you sure you want to delete this folder? Notes in this folder will be moved back to the main notes section.')) {
-      deleteFolder(id);
-      router.push('/app/notes');
-    }
+    setShowDeleteFolderModal(true);
+  };
+
+  const confirmDeleteFolder = () => {
+    deleteFolder(id);
+    router.push('/app/notes');
   };
   
   const handleDeleteNote = (noteId: string) => {
-    if (confirm('Are you sure you want to delete this note?')) {
-      deleteNote(noteId);
+    setNoteToDelete(noteId);
+    setShowDeleteNoteModal(true);
+  };
+
+  const confirmDeleteNote = () => {
+    if (noteToDelete) {
+      deleteNote(noteToDelete);
+      setShowDeleteNoteModal(false);
+      setNoteToDelete(null);
     }
   };
   
@@ -91,8 +106,15 @@ export default function FolderPage({ params }: FolderPageProps) {
   };
   
   const handleRemoveFromFolder = (noteId: string) => {
-    if (confirm('Remove this note from the folder? It will still be available in All Notes.')) {
-      moveNoteToFolder(noteId, null);
+    setNoteToRemove(noteId);
+    setShowRemoveNoteModal(true);
+  };
+
+  const confirmRemoveFromFolder = () => {
+    if (noteToRemove) {
+      moveNoteToFolder(noteToRemove, null);
+      setShowRemoveNoteModal(false);
+      setNoteToRemove(null);
     }
   };
 
@@ -323,6 +345,39 @@ export default function FolderPage({ params }: FolderPageProps) {
           </Link>
         </div>
       )}
+
+      {/* Delete Folder Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteFolderModal}
+        onClose={() => setShowDeleteFolderModal(false)}
+        onConfirm={confirmDeleteFolder}
+        title="Delete Folder"
+        message="Are you sure you want to delete this folder? Notes in this folder will be moved back to the main notes section."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
+
+      {/* Delete Note Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteNoteModal}
+        onClose={() => setShowDeleteNoteModal(false)}
+        onConfirm={confirmDeleteNote}
+        title="Delete Note"
+        message="Are you sure you want to delete this note? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
+
+      {/* Remove Note from Folder Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showRemoveNoteModal}
+        onClose={() => setShowRemoveNoteModal(false)}
+        onConfirm={confirmRemoveFromFolder}
+        title="Remove from Folder"
+        message="Remove this note from the folder? It will still be available in All Notes."
+        confirmText="Remove"
+        cancelText="Cancel"
+      />
     </div>
   );
 } 

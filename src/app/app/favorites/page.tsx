@@ -4,11 +4,15 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useNotes } from '@/store/NoteStore';
 import { getTagStyle } from '@/utils/tagColors';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 export default function FavoritesPage() {
   const { getFavorites, deleteNote, favoriteNote } = useNotes();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'title'>('date');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
   
   // Get favorite notes
   const favoriteNotes = getFavorites();
@@ -16,11 +20,15 @@ export default function FavoritesPage() {
   // Filter and sort favorites
   const filteredNotes = useMemo(() => {
     return favoriteNotes
-      .filter(note => 
-        searchTerm === '' || 
-        note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        note.content.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      .filter(note => {
+        const matchesSearch = searchTerm === '' || 
+          note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          note.content.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesTag = selectedTag === null || note.tags.includes(selectedTag);
+        
+        return matchesSearch && matchesTag;
+      })
       .sort((a, b) => {
         if (sortBy === 'date') {
           return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
@@ -28,11 +36,18 @@ export default function FavoritesPage() {
           return a.title.localeCompare(b.title);
         }
       });
-  }, [favoriteNotes, searchTerm, sortBy]);
+  }, [favoriteNotes, searchTerm, sortBy, selectedTag]);
   
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this note?')) {
-      deleteNote(id);
+  const handleDelete = (noteId: string) => {
+    setNoteToDelete(noteId);
+    setShowDeleteModal(true);
+  };
+  
+  const confirmDelete = () => {
+    if (noteToDelete) {
+      deleteNote(noteToDelete);
+      setShowDeleteModal(false);
+      setNoteToDelete(null);
     }
   };
   
@@ -186,6 +201,17 @@ export default function FavoritesPage() {
           </Link>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Note"
+        message="Are you sure you want to delete this note? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 } 

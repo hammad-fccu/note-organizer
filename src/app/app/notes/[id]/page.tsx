@@ -8,6 +8,7 @@ import NoteSummary from '@/components/NoteSummary';
 import NoteTabs from '@/components/NoteTabs';
 import { SummaryType } from '@/utils/aiSummary';
 import { getTagStyle } from '@/utils/tagColors';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 // Add these imports for the API call
 import { generateTags } from '@/utils/aiSummary';
@@ -107,6 +108,7 @@ export default function NotePage({ params }: NotePageProps) {
   const [isGeneratingTags, setIsGeneratingTags] = useState(false);
   // Add state to force re-render when tags update
   const [tagUpdateCount, setTagUpdateCount] = useState(0);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   
   // Load note data
   useEffect(() => {
@@ -172,10 +174,12 @@ export default function NotePage({ params }: NotePageProps) {
   };
   
   const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this note?')) {
-      deleteNote(id);
-      router.push('/app/notes');
-    }
+    setShowDeleteModal(true);
+  };
+  
+  const confirmDelete = () => {
+    deleteNote(id);
+    router.push('/app/notes');
   };
   
   const handleToggleFavorite = () => {
@@ -603,6 +607,17 @@ export default function NotePage({ params }: NotePageProps) {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Note"
+        message="Are you sure you want to delete this note? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 } 
