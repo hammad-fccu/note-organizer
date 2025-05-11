@@ -1,13 +1,40 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc; /* Light blue-gray background */
+  --foreground: #1e293b;
+  --card-bg: #ffffff;
+  --card-shadow: rgba(0, 0, 0, 0.04);
+  --border-light: #e2e8f0;
+  --hover-bg: #f0f7ff; /* Light blue hover background */
+  --link-color: #3b82f6; /* Blue for links and buttons */
+  --border-blue: #bfdbfe; /* Light blue border color */
+  --light-blue-bg: #eff6ff; /* Light blue background */
+  
+  /* Modern button gradients - 10-20% lighter */
+  --blue-gradient: linear-gradient(135deg, #6366f1, #60a5fa);
+  --blue-gradient-hover: linear-gradient(135deg, #4f46e5, #3b82f6);
+  --green-gradient: linear-gradient(135deg, #10b981, #34d399);
+  --green-gradient-hover: linear-gradient(135deg, #059669, #10b981);
+  --red-gradient: linear-gradient(135deg, #f87171, #ef4444);
+  --red-gradient-hover: linear-gradient(135deg, #dc2626, #b91c1c);
+  
+  /* Tag gradients */
+  --tag-blue: linear-gradient(135deg, #60a5fa, #3b82f6);
+  --tag-green: linear-gradient(135deg, #34d399, #10b981);
+  --tag-purple: linear-gradient(135deg, #c084fc, #8b5cf6);
+  --tag-pink: linear-gradient(135deg, #f472b6, #ec4899);
+  --tag-yellow: linear-gradient(135deg, #fbbf24, #f59e0b);
+  --tag-red: linear-gradient(135deg, #f87171, #ef4444);
+  --tag-indigo: linear-gradient(135deg, #818cf8, #6366f1);
+  --tag-teal: linear-gradient(135deg, #2dd4bf, #14b8a6);
+  --tag-orange: linear-gradient(135deg, #fb923c, #f97316);
+  --tag-cyan: linear-gradient(135deg, #22d3ee, #06b6d4);
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #121212; /* Darker background for more contrast */
+  --foreground: #ffffff; /* Brighter text in dark mode */
 }
 
 @theme inline {
@@ -28,4 +55,239 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Fix sidebar scrollbar issues */
+.sidebar, [class*="sidebar"] {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+}
+
+input[placeholder="Folder name"] {
+  min-width: 0 !important;
+  width: 100% !important;
+  flex-shrink: 1 !important;
+}
+
+/* Hide folder action buttons until folder is selected/hovered */
+.folder-actions {
+  display: none;
+}
+
+.folder:hover .folder-actions,
+.folder.active .folder-actions {
+  display: flex;
+}
+
+/* Modern tag gradients */
+span[class*="bg-blue-100"],
+span[class*="px-2 py-1"][class*="rounded-full"],
+.px-2.py-1.rounded-full {
+  background: var(--tag-blue) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+}
+
+/* Random tag colors using a custom attribute instead of nth-child */
+span[data-tag-color="0"],
+.tag-color-0 {
+  background: var(--tag-blue) !important;
+}
+
+span[data-tag-color="1"],
+.tag-color-1 {
+  background: var(--tag-green) !important;
+}
+
+span[data-tag-color="2"],
+.tag-color-2 {
+  background: var(--tag-purple) !important;
+}
+
+span[data-tag-color="3"],
+.tag-color-3 {
+  background: var(--tag-pink) !important;
+}
+
+span[data-tag-color="4"],
+.tag-color-4 {
+  background: var(--tag-yellow) !important;
+}
+
+span[data-tag-color="5"],
+.tag-color-5 {
+  background: var(--tag-red) !important;
+}
+
+span[data-tag-color="6"],
+.tag-color-6 {
+  background: var(--tag-indigo) !important;
+}
+
+span[data-tag-color="7"],
+.tag-color-7 {
+  background: var(--tag-teal) !important;
+}
+
+span[data-tag-color="8"],
+.tag-color-8 {
+  background: var(--tag-orange) !important;
+}
+
+span[data-tag-color="9"],
+.tag-color-9 {
+  background: var(--tag-cyan) !important;
+}
+
+/* Modern button styles */
+.bg-blue-600, .hover\:bg-blue-700:hover {
+  background: var(--blue-gradient) !important;
+  border: none !important;
+  box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+.bg-blue-600:hover, .hover\:bg-blue-700:hover {
+  background: var(--blue-gradient-hover) !important;
+  box-shadow: 0 3px 8px rgba(59, 130, 246, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Green buttons (Import document) */
+.bg-green-600, button:has(svg[d*="M7 16a4"]), a:has(svg[d*="M7 16a4"]) {
+  background: var(--green-gradient) !important;
+  border: none !important;
+  box-shadow: 0 2px 5px rgba(16, 185, 129, 0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+.bg-green-600:hover, button:has(svg[d*="M7 16a4"]):hover, a:has(svg[d*="M7 16a4"]):hover {
+  background: var(--green-gradient-hover) !important;
+  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Red buttons (Delete) */
+.bg-red-600, .hover\:bg-red-700:hover, button:has(svg[d*="M19 7l-.867"]), a:has(svg[d*="M19 7l-.867"]) {
+  background: var(--red-gradient) !important;
+  border: none !important;
+  box-shadow: 0 2px 5px rgba(239, 68, 68, 0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+.bg-red-600:hover, button:has(svg[d*="M19 7l-.867"]):hover, a:has(svg[d*="M19 7l-.867"]):hover, .hover\:bg-red-700:hover {
+  background: var(--red-gradient-hover) !important;
+  box-shadow: 0 3px 8px rgba(239, 68, 68, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Light mode enhancements only */
+html:not(.dark) .bg-white {
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px var(--card-shadow);
+  border: 1px solid var(--border-light);
+}
+
+html:not(.dark) .bg-gray-50 {
+  background-color: #f8fafc;
+}
+
+html:not(.dark) .bg-gray-100 {
+  background-color: #f1f5f9;
+}
+
+/* Additional elements with light blue styling */
+html:not(.dark) .bg-gray-200 {
+  background-color: var(--light-blue-bg);
+  border: 1px solid var(--border-blue);
+}
+
+html:not(.dark) .text-xs.bg-gray-200.rounded-full {
+  background-color: var(--light-blue-bg);
+  border: 1px solid var(--border-blue);
+}
+
+html:not(.dark) .p-2.rounded-full.bg-gray-200 {
+  background-color: var(--light-blue-bg);
+  border: 1px solid var(--border-blue);
+}
+
+/* Sidebar numbers and toggle button border fix */
+html:not(.dark) .p-3.rounded-full {
+  border: 1px solid var(--border-blue);
+}
+
+html:not(.dark) button.rounded-full {
+  border: 1px solid var(--border-blue);
+}
+
+/* Text color fixes for better visibility */
+html:not(.dark) .text-gray-500 {
+  color: #64748b; /* Darker gray for better contrast */
+}
+
+html:not(.dark) .text-gray-600 {
+  color: #475569; /* Darker slate for better visibility */
+}
+
+html:not(.dark) .text-gray-400 {
+  color: #64748b; /* Increased visibility for light gray text */
+}
+
+html:not(.dark) .text-gray-700 {
+  color: #334155; /* Darker text for headings */
+}
+
+html:not(.dark) .text-gray-900 {
+  color: #0f172a; /* Almost black for primary text */
+}
+
+/* Enhanced hover effects */
+html:not(.dark) .hover\:bg-gray-50:hover {
+  background-color: var(--hover-bg) !important;
+}
+
+html:not(.dark) .hover\:bg-gray-100:hover {
+  background-color: var(--hover-bg) !important;
+}
+
+html:not(.dark) .hover\:shadow-md:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Link colors */
+html:not(.dark) .text-blue-600 {
+  color: var(--link-color);
+}
+
+html:not(.dark) .rounded-lg {
+  border-radius: 0.5rem;
+}
+
+/* Enhanced light mode colors for colored elements */
+html:not(.dark) .bg-blue-100 {
+  background-color: #dbeafe;
+}
+
+html:not(.dark) .bg-green-100 {
+  background-color: #dcfce7;
+}
+
+html:not(.dark) .bg-purple-100 {
+  background-color: #f3e8ff;
+}
+
+html:not(.dark) .bg-yellow-100 {
+  background-color: #fef9c3;
+}
+
+/* Fix active/hover states for buttons and links */
+html:not(.dark) a:hover, 
+html:not(.dark) button:hover:not(.bg-blue-600):not(.bg-green-600):not(.bg-red-600) {
+  opacity: 0.9;
+}
+
+html:not(.dark) .transition-colors {
+  transition: all 0.2s ease;
 }
