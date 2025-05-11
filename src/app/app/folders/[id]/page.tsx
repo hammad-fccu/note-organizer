@@ -9,10 +9,8 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 
 export default function FolderPage({
   params,
-  searchParams
 }: {
   params: Promise<{ id: string }>;
-  searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const { id } = use(params);
   const router = useRouter();
