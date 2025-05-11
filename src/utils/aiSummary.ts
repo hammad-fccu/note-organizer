@@ -24,17 +24,55 @@ export const AI_MODELS = [
   { id: 'google/gemini-2.0-flash-exp:free', name: 'Google Gemini 2.0 Flash (Free)' },
 ];
 
-// Generate a summary prompt based on the summary type
+// Gemini API key for fallback
+const GEMINI_API_KEY = "AIzaSyBAISSbMog7i4VjD1ala_V9G9yePCYJI-8";
+
+// Function to call Gemini API as a fallback
+const callGeminiApi = async (prompt: string): Promise<string> => {
+  console.log("Falling back to Gemini API");
+  
+  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts:[{text: prompt}]
+      }]
+    })
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Gemini API error:", errorText);
+    throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+  }
+  
+  const data = await response.json();
+  
+  // Extract content from Gemini API response
+  if (data.candidates && data.candidates.length > 0 && 
+      data.candidates[0].content && 
+      data.candidates[0].content.parts && 
+      data.candidates[0].content.parts.length > 0) {
+    return data.candidates[0].content.parts[0].text;
+  }
+  
+  throw new Error("Failed to extract content from Gemini API response");
+};
+
+// Function to get the appropriate prompt for a summary
 function getSummaryPrompt(text: string, type: SummaryType): string {
   switch (type) {
     case 'brief':
-      return `Summarize the following text in 2-3 concise sentences capturing the main points. DO NOT include phrases like "Here is a summary" or "In summary". DO NOT add any introduction or conclusion. ONLY output the summary text itself:\n\n${text}`;
-    case 'detailed':
-      return `Provide a detailed summary of the following text explaining the main concepts and important details. DO NOT include phrases like "Here is a summary" or "In conclusion". DO NOT add any introduction or conclusion. ONLY output the summary text itself:\n\n${text}`;
+      return `Please provide a brief summary (2-3 sentences) of the following text:\n\n${text}`;
     case 'bullets':
-      return `Summarize the following text as 3-5 bullet points highlighting the key takeaways. DO NOT include phrases like "Here are the bullet points" or any other introduction. Start directly with the bullet points:\n\n${text}`;
+      return `Please provide a bulleted summary (5-7 key points) of the following text. Use a simple bullet point format with one line per point:\n\n${text}`;
+    case 'detailed':
+      return `Please provide a detailed summary (1-2 paragraphs) of the following text, covering all the main points and important details:\n\n${text}`;
     default:
-      return `Summarize the following text in 2-3 sentences. DO NOT include phrases like "Here is a summary" or any other introduction or conclusion. ONLY output the summary text itself:\n\n${text}`;
+      return `Please summarize the following text:\n\n${text}`;
   }
 }
 
@@ -74,8 +112,11 @@ export async function generateSummary({ text, type, model, apiKey }: SummaryOpti
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || response.statusText || "Unknown error occurred");
+      // Try the fallback to Gemini API
+      console.log("OpenRouter API call failed in generateSummary, trying Gemini API fallback");
+      const summaryText = await callGeminiApi(prompt);
+      console.log("Successfully retrieved summary from Gemini API fallback");
+      return summaryText.trim();
     }
     
     const data = await response.json();
@@ -91,37 +132,45 @@ export async function generateSummary({ text, type, model, apiKey }: SummaryOpti
     }
     
     if (!summaryText) {
-      throw new Error("The model returned an empty response");
+      // Try the fallback to Gemini API if OpenRouter returned empty content
+      console.log("OpenRouter API returned empty content, trying Gemini API fallback");
+      summaryText = await callGeminiApi(prompt);
+      console.log("Successfully retrieved summary from Gemini API fallback");
     }
     
     // Clean up the summary
-    summaryText = summaryText.trim();
-    
-    // Remove common introductory phrases
-    const phrasesToRemove = [
-      /^here is a summary:?\s*/i,
-      /^here are the key points:?\s*/i, 
-      /^summary:?\s*/i,
-      /^in summary:?\s*/i,
-      /^the summary is:?\s*/i,
-      /^here are the bullet points:?\s*/i,
-      /^bullet points:?\s*/i,
-      /^key takeaways:?\s*/i,
-      /^to summarize:?\s*/i,
-      /^in conclusion:?\s*/i
-    ];
-    
-    for (const phrase of phrasesToRemove) {
-      summaryText = summaryText.replace(phrase, '');
-    }
-    
-    return summaryText;
+    return summaryText.trim();
   } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Error generating summary: ${error.message}`);
+    console.error("Error in generateSummary:", error);
+    
+    // Try the fallback to Gemini API as a last resort
+    try {
+      console.log("Error with OpenRouter in generateSummary, trying Gemini API as last resort");
+      const summaryText = await callGeminiApi(prompt);
+      console.log("Successfully retrieved summary from Gemini API last resort");
+      return summaryText.trim();
+    } catch (geminiError) {
+      console.error("Both OpenRouter and Gemini API failed:", geminiError);
+      throw new Error("Failed to generate summary. Both primary and fallback APIs failed.");
     }
-    throw new Error('Unknown error occurred');
   }
+}
+
+// Function to normalize tags
+export function normalizeTags(tags: string[]): string[] {
+  // Step 1: Clean each tag - lowercase, trim whitespace, remove symbols
+  let cleanedTags = tags.map(tag => 
+    tag.toLowerCase()
+      .trim()
+      .replace(/^[#\s]+/, '') // Remove leading # and spaces
+      .replace(/[^\w\s-]/g, '') // Remove special chars except spaces, hyphens
+      .trim()
+  );
+  
+  // Step 2: Filter out empty tags and duplicates
+  cleanedTags = [...new Set(cleanedTags)].filter(tag => tag !== '');
+  
+  return cleanedTags;
 }
 
 // Function to generate tags using LLMs
@@ -189,12 +238,42 @@ export async function generateTags({ text, title, model, apiKey }: TagGeneration
       });
     } catch (fetchErr) {
       console.error('Fetch error in generateTags:', fetchErr);
-      return [];
+      // Try the fallback to Gemini API
+      try {
+        console.log("Fetch error in generateTags, trying Gemini API fallback");
+        const tagsText = await callGeminiApi(prompt);
+        console.log("Successfully retrieved tags from Gemini API fallback");
+        
+        // Process the response to extract clean tags
+        const tags = tagsText.split(',')
+          .map(tag => (tag || '').trim())
+          .filter(tag => tag !== '');
+        
+        return normalizeTags(tags);
+      } catch (geminiError) {
+        console.error("Gemini API fallback also failed:", geminiError);
+        return []; // Return empty array
+      }
     }
     
     if (!response) {
       console.error('No response received from API');
-      return []; // Return empty array instead of throwing
+      // Try the fallback to Gemini API
+      try {
+        console.log("No response in generateTags, trying Gemini API fallback");
+        const tagsText = await callGeminiApi(prompt);
+        console.log("Successfully retrieved tags from Gemini API fallback");
+        
+        // Process the response to extract clean tags
+        const tags = tagsText.split(',')
+          .map(tag => (tag || '').trim())
+          .filter(tag => tag !== '');
+        
+        return normalizeTags(tags);
+      } catch (geminiError) {
+        console.error("Gemini API fallback also failed:", geminiError);
+        return []; // Return empty array
+      }
     }
     
     console.log(`Response status: ${response.status}`);
@@ -218,7 +297,23 @@ export async function generateTags({ text, title, model, apiKey }: TagGeneration
       }
       
       console.error(errorMessage);
-      return []; // Return empty array instead of throwing
+      
+      // Try the fallback to Gemini API
+      try {
+        console.log("OpenRouter API error in generateTags, trying Gemini API fallback");
+        const tagsText = await callGeminiApi(prompt);
+        console.log("Successfully retrieved tags from Gemini API fallback");
+        
+        // Process the response to extract clean tags
+        const tags = tagsText.split(',')
+          .map(tag => (tag || '').trim())
+          .filter(tag => tag !== '');
+        
+        return normalizeTags(tags);
+      } catch (geminiError) {
+        console.error("Gemini API fallback also failed:", geminiError);
+        return []; // Return empty array
+      }
     }
     
     let data;
@@ -227,7 +322,23 @@ export async function generateTags({ text, title, model, apiKey }: TagGeneration
       console.log('API response data:', data);
     } catch (err) {
       console.error('Failed to parse JSON response:', err);
-      return []; // Return empty array instead of throwing
+      
+      // Try the fallback to Gemini API
+      try {
+        console.log("Failed to parse JSON in generateTags, trying Gemini API fallback");
+        const tagsText = await callGeminiApi(prompt);
+        console.log("Successfully retrieved tags from Gemini API fallback");
+        
+        // Process the response to extract clean tags
+        const tags = tagsText.split(',')
+          .map(tag => (tag || '').trim())
+          .filter(tag => tag !== '');
+        
+        return normalizeTags(tags);
+      } catch (geminiError) {
+        console.error("Gemini API fallback also failed:", geminiError);
+        return []; // Return empty array
+      }
     }
     
     // Extract response text
@@ -242,7 +353,16 @@ export async function generateTags({ text, title, model, apiKey }: TagGeneration
     
     if (!tagsText) {
       console.error('Empty response from API:', data);
-      return [];
+      
+      // Try the fallback to Gemini API
+      try {
+        console.log("Empty response in generateTags, trying Gemini API fallback");
+        tagsText = await callGeminiApi(prompt);
+        console.log("Successfully retrieved tags from Gemini API fallback");
+      } catch (geminiError) {
+        console.error("Gemini API fallback also failed:", geminiError);
+        return []; // Return empty array
+      }
     }
     
     console.log('Raw tags response:', tagsText);
@@ -254,10 +374,9 @@ export async function generateTags({ text, title, model, apiKey }: TagGeneration
       .filter(tag => tag !== '');
     
     console.log('Final processed tags:', tags);
-    return tags;
+    return normalizeTags(tags);
   } catch (error) {
-    console.error('Error in generateTags:', error);
-    // Just return empty array instead of throwing
-    return [];
+    console.error('Unexpected error in generateTags:', error);
+    return []; // Return empty array as a fallback
   }
 } 
