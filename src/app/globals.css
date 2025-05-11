@@ -291,3 +291,15 @@ html:not(.dark) button:hover:not(.bg-blue-600):not(.bg-green-600):not(.bg-red-60
 html:not(.dark) .transition-colors {
   transition: all 0.2s ease;
 }
+
+/* Override hover effects for specific elements */
+.no-hover, .no-hover:hover {
+  transform: none !important;
+  transition: none !important;
+  box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3) !important;
+}
+
+.no-hover.bg-blue-600:hover, .no-hover.bg-green-600:hover, .no-hover.bg-red-600:hover {
+  transform: none !important;
+  background: inherit !important;
+}

@@ -121,24 +121,37 @@ export default function ExportControls({ flashcards, deckName, modelName }: Expo
       <div className="space-y-6">
         {/* Success/error message */}
         {exportSuccess !== null && (
-          <div className={`p-3 rounded-md ${exportSuccess ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-800/20 dark:text-red-300'}`}>
-            {exportSuccess 
-              ? `Successfully exported ${flashcards.length} flashcards!` 
-              : 'Failed to export. Please check console for errors.'}
+          <div className={`p-3 rounded-md border-[3px] ${exportSuccess 
+            ? 'bg-white dark:bg-gray-800 !border-green-500' 
+            : 'bg-white dark:bg-gray-800 !border-red-400 dark:!border-red-600'}`}
+          >
+            <p className={`text-sm font-medium ${exportSuccess 
+              ? 'text-green-700 dark:text-green-400' 
+              : 'text-red-700 dark:text-red-400'}`}
+            >
+              {exportSuccess 
+                ? `Successfully exported ${flashcards.length} flashcards!` 
+                : 'Failed to export. Please check console for errors.'}
+            </p>
           </div>
         )}
         
         {/* Card info */}
-        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-          <p className="text-sm text-blue-800 dark:text-blue-300">
-            <span className="font-medium">Current Deck:</span> {deckName || 'My Flashcards'}
-          </p>
-          <p className="text-sm text-blue-800 dark:text-blue-300">
-            <span className="font-medium">Card Type:</span> {modelName}
-          </p>
-          <p className="text-sm text-blue-800 dark:text-blue-300">
-            <span className="font-medium">Cards:</span> {flashcards.length} flashcards
-          </p>
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-md border border-gray-300 dark:border-gray-700">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            <div className="flex">
+              <div className="font-semibold w-28">Current Deck:</div>
+              <div>{deckName || 'My Flashcards'}</div>
+            </div>
+            <div className="flex">
+              <div className="font-semibold w-28">Card Type:</div>
+              <div>{modelName}</div>
+            </div>
+            <div className="flex">
+              <div className="font-semibold w-28">Cards:</div>
+              <div>{flashcards.length} flashcards</div>
+            </div>
+          </div>
         </div>
         
         {/* Export Button */}
