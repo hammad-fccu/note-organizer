@@ -17,35 +17,94 @@ const GEMINI_API_KEY = "AIzaSyBAISSbMog7i4VjD1ala_V9G9yePCYJI-8";
 const callGeminiApi = async (prompt: string): Promise<string> => {
   console.log("Falling back to Gemini API");
   
-  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts:[{text: prompt}]
-      }]
-    })
-  });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Gemini API error:", errorText);
-    throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+  // Enhance the prompt for Gemini to ensure proper formatting
+  const enhancedPrompt = 
+    `I need you to generate well-formatted flashcards based on the content below. You MUST follow these formatting rules EXACTLY:
+
+${prompt.includes('Cloze') ? 
+`For CLOZE cards:
+1. Each card must be clearly separated with "Card X" (where X is the card number) on its own line
+2. Each cloze card must have exactly ONE term in [square brackets]
+3. Format your response exactly like this:
+
+Card 1
+The [mitochondria] is the powerhouse of the cell.
+
+Card 2
+[Photosynthesis] is the process by which plants convert light energy into chemical energy.
+
+IMPORTANT: Keep each sentence on a single line.` : 
+`For BASIC cards:
+1. Format each card EXACTLY like this:
+
+Card 1
+Front: What is the capital of France?
+Back: Paris
+
+Card 2
+Front: What is the largest planet in our solar system?
+Back: Jupiter
+
+2. CRITICAL FORMATTING RULES:
+   - Always use question words (What, How, Why, etc.) to start each question
+   - Never split words across lines
+   - Always put "Front:" and "Back:" labels exactly as shown
+   - Keep the entire question on ONE line
+   - Put "Back:" on its OWN LINE
+   - DO NOT use any lines with just "FRONT" or "BACK"`}
+
+Original request:
+${prompt}
+
+FOLLOW THESE FORMATTING RULES EXACTLY:
+1. DO NOT split words across lines - especially question words like "What"
+2. Keep each question on a single line
+3. Use proper spacing between cards
+4. Use clear "Front:" and "Back:" labels for each card
+5. Each "Front:" and "Back:" MUST be on separate lines
+6. ONLY create flashcards from the actual note content provided
+7. DO NOT include instructions, examples, or meta-commentary as flashcard content`;
+
+  try {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts:[{text: enhancedPrompt}]
+        }],
+        generationConfig: {
+          temperature: 0.2, // Lower temperature for more consistent formatting
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 8192
+        }
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Gemini API error:", errorText);
+      throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+    }
+    
+    const data = await response.json();
+    
+    // Extract content from Gemini API response
+    if (data.candidates && data.candidates.length > 0 && 
+        data.candidates[0].content && 
+        data.candidates[0].content.parts && 
+        data.candidates[0].content.parts.length > 0) {
+      return data.candidates[0].content.parts[0].text;
+    }
+    
+    throw new Error("Failed to extract content from Gemini API response");
+  } catch (error) {
+    console.error("Error in Gemini API call:", error);
+    throw error;
   }
-  
-  const data = await response.json();
-  
-  // Extract content from Gemini API response
-  if (data.candidates && data.candidates.length > 0 && 
-      data.candidates[0].content && 
-      data.candidates[0].content.parts && 
-      data.candidates[0].content.parts.length > 0) {
-    return data.candidates[0].content.parts[0].text;
-  }
-  
-  throw new Error("Failed to extract content from Gemini API response");
 };
 
 interface FlashcardGeneratorProps {
@@ -115,12 +174,30 @@ ${instructions}
 
 ${cardType === 'Cloze' 
   ? 'Create cloze deletion cards with exactly ONE key term in [square brackets] per card. Example: "The [mitochondria] is the powerhouse of the cell."' 
-  : 'Format each card as follows:\nCard 1\nFront: (question)\nBack: (answer)\n\nCard 2\nFront: (question)\nBack: (answer)'}
+  : `Format each card EXACTLY as follows:
+
+Card 1
+Front: What is the capital of France?
+Back: Paris
+
+Card 2
+Front: What is the largest planet in our solar system?
+Back: Jupiter
+
+CRITICAL FORMATTING RULES:
+1. Always include "Front:" and "Back:" labels
+2. NEVER split words across lines (especially question words)
+3. Keep each question on a SINGLE LINE
+4. Every "Back:" MUST be on its own line
+5. Start each front with What, How, Why, When, Where, etc.
+6. DO NOT repeat question words multiple times`}
 
 Note Content:
 ${note.content}
 
 Return exactly ${options.maxCards} flashcards focusing on the most important concepts.
+
+IMPORTANT: Create flashcards ONLY from the actual note content provided above. DO NOT create flashcards from these instructions or include any meta-commentary in the flashcards.
 `;
     
     let content = '';
@@ -514,10 +591,14 @@ const parseRawTextIntoFlashcards = (text: string, tags: string[], cardType: Card
     
     for (let i = 0; i < Math.min(sections.length, maxCards * 2); i += 2) {
       if (i + 1 < sections.length) {
+        // Fix the 't ' prefix issue in front text
+        const frontText = sections[i].replace(/^t\s+/i, "What ");
+        const backText = sections[i + 1];
+        
         flashcards.push({
           id: uuidv4(),
-          front: sections[i],
-          back: sections[i + 1],
+          front: frontText,
+          back: backText,
           tags: tags,
           createdAt: new Date()
         });
@@ -547,162 +628,248 @@ const parseRawTextIntoFlashcards = (text: string, tags: string[], cardType: Card
 const parseContentIntoFlashcards = (content: string, tags: string[], cardType: CardType, maxCards: number): Flashcard[] => {
   const flashcards: Flashcard[] = [];
   
+  // Log the raw content for debugging
+  console.log("Raw content to parse:", content.substring(0, 200) + "...");
+  
+  // STEP 1: Initial cleanup to fix common formatting issues
+  let processedContent = content
+    // Fix repeated question words and fix fragmented "What"/"Wh"/"t" issues
+    .replace(/\b(What\s+)+/gi, "What ")
+    .replace(/\b(Wh\s*)\s*\n*\s*(t\s+)/gi, "What ")
+    .replace(/\bWh\b\s*\n*\s*\bt\b/gi, "What")
+    .replace(/\bt\s+is\b/gi, "What is")
+    .replace(/\bt\s+/gi, "What ")
+    .replace(/\bWh\s+/gi, "What ")
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .replace(/Card\s+\d+\s*/g, "\n\n") // Replace "Card X" with double newlines for separation
+    .replace(/Front:/gi, "\nFront:") // Ensure Front: is on its own line
+    .replace(/Back:/gi, "\nBack:"); // Ensure Back: is on its own line
+    
+  // Log the processed content
+  console.log("Basic processed content:", processedContent.substring(0, 200) + "...");
+  
+  // STEP 2: Parse according to card type
   if (cardType === 'Cloze') {
-    console.log("Parsing content for Cloze cards");
+    // For cloze cards, look for sentences with terms in [square brackets]
+    const clozeRegex = /([^.!?]+\[[^\]]+\][^.!?]*[.!?])/g;
+    const matches = processedContent.match(clozeRegex) || [];
     
-    // Look for numbered cloze cards first
-    const numberedClozeRegex = /card\s*(\d+)[.\s:]*([^]*?\[.*?\].*?)(?=card\s*\d+|$)/gi;
-    const numberedMatches = Array.from(content.matchAll(numberedClozeRegex));
-    
-    if (numberedMatches.length > 0) {
-      console.log("Found numbered cloze cards: ", numberedMatches.length);
-      numberedMatches.slice(0, maxCards).forEach((match) => {
-        const text = match[2].trim();
-        if (text && text.includes('[') && text.includes(']')) {
-          const front = text;
-          const back = text.replace(/\[([^\]]+)\]/g, '$1');
-          
-          flashcards.push({
-            id: uuidv4(),
-            front,
-            back,
-            tags,
-            createdAt: new Date()
-          });
+    for (const match of matches.slice(0, maxCards)) {
+      if (match.includes('[') && match.includes(']')) {
+        // Skip cards that contain instruction-like content
+        if (shouldSkipInstructionContent(match)) {
+          console.log("Skipping invalid cloze card with instruction-like content:", match);
+          continue;
         }
-      });
-    }
-    
-    // If no numbered cards found, look for any text with square brackets
-    if (flashcards.length < 1) {
-      console.log("Trying to find cloze deletions in text");
-      
-      // Split by sentences or newlines
-      const sentences = content.match(/[^.!?]+\[[^\]]+\][^.!?]*[.!?]/g) || [];
-      
-      if (sentences.length > 0) {
-        console.log("Found sentences with cloze deletions: ", sentences.length);
-        sentences.slice(0, maxCards).forEach((sentence) => {
-          if (sentence.includes('[') && sentence.includes(']')) {
-            const front = sentence.trim();
-            const back = sentence.replace(/\[([^\]]+)\]/g, '$1').trim();
-            
-            flashcards.push({
-              id: uuidv4(),
-              front,
-              back,
-              tags,
-              createdAt: new Date()
-            });
-          }
+        
+        flashcards.push({
+          id: uuidv4(),
+          front: match.trim(),
+          back: match.replace(/\[([^\]]+)\]/g, '$1').trim(),
+          tags,
+          createdAt: new Date()
         });
       }
     }
     
-    // Last resort: look for any text fragments with square brackets
-    if (flashcards.length < 1) {
-      console.log("Looking for any fragments with square brackets");
+    // If no cloze deletions found, look for any text with square brackets
+    if (flashcards.length === 0) {
+      const fragments = processedContent.split(/\n+/).filter(line => 
+        line.includes('[') && line.includes(']')
+      );
       
-      const regex = /([^\n]+\[[^\]]+\][^\n]*)/g;
-      const fragments = Array.from(content.matchAll(regex))
-        .map(match => match[1].trim())
-        .filter(fragment => fragment.includes('[') && fragment.includes(']'));
-      
-      if (fragments.length > 0) {
-        console.log("Found fragments with cloze deletions: ", fragments.length);
-        fragments.slice(0, maxCards).forEach((fragment) => {
-          const front = fragment;
-          const back = fragment.replace(/\[([^\]]+)\]/g, '$1');
-          
-          flashcards.push({
-            id: uuidv4(),
-            front,
-            back,
-            tags,
-            createdAt: new Date()
-          });
+      for (const fragment of fragments.slice(0, maxCards)) {
+        // Skip cards that contain instruction-like content
+        if (shouldSkipInstructionContent(fragment)) {
+          console.log("Skipping invalid cloze card with instruction-like content:", fragment);
+          continue;
+        }
+        
+        flashcards.push({
+          id: uuidv4(),
+          front: fragment.trim(),
+          back: fragment.replace(/\[([^\]]+)\]/g, '$1').trim(),
+          tags,
+          createdAt: new Date()
         });
       }
     }
   } else {
-    // Basic and Basic-and-reversed cards
-    console.log("Parsing content for Basic cards");
+    // For basic cards, use a simpler approach focusing on clear patterns
     
-    // First try to match "Card X\nFront: ...\nBack: ..." format
-    const cardRegex = /card\s*(\d+)[.\s:]*((?:front|q)[.\s:]*([^]*?)(?:back|a)[.\s:]*([^]*?)(?=card\s*\d+|$))/gi;
-    const matches = Array.from(content.matchAll(cardRegex));
+    // STEP 3: Split content into potential card chunks
+    // Try to split by clear card boundaries first
+    let cardChunks: string[] = [];
     
-    if (matches.length > 0) {
-      console.log("Found structured cards: ", matches.length);
-      matches.slice(0, maxCards).forEach((match) => {
-        const frontText = match[3]?.trim();
-        const backText = match[4]?.trim();
-        
-        if (frontText && backText) {
-          flashcards.push({
-            id: uuidv4(),
-            front: frontText,
-            back: backText,
-            tags,
-            createdAt: new Date()
-          });
-        }
-      });
-    }
-    
-    // If no structured cards found, try alternative formats
-    if (flashcards.length < 1) {
-      console.log("Trying alternative card formats");
+    if (processedContent.includes("Front:") && processedContent.includes("Back:")) {
+      // Cards with explicit Front:/Back: labels
+      const frontBackPattern = /Front:(.*?)Back:(.*?)(?=Front:|$)/gis;
+      const matches = Array.from(processedContent.matchAll(frontBackPattern));
       
-      // Try to match numbered Q&A pairs: "1. Question\nAnswer" format
-      const numberedQARegex = /(\d+)[.)]\s*([^\n]+)\n+([^]*?)(?=\n\s*\d+[.)]|$)/g;
-      const numberedMatches = Array.from(content.matchAll(numberedQARegex));
-      
-      if (numberedMatches.length > 0) {
-        console.log("Found numbered Q&A pairs: ", numberedMatches.length);
-        numberedMatches.slice(0, maxCards).forEach((match) => {
-          const frontText = match[2]?.trim();
-          const backText = match[3]?.trim();
+      if (matches.length > 0) {
+        for (const match of matches) {
+          const front = match[1].trim();
+          const back = match[2].trim();
           
-          if (frontText && backText) {
-            flashcards.push({
-              id: uuidv4(),
-              front: frontText,
-              back: backText,
-              tags,
-              createdAt: new Date()
-            });
+          if (front && back) {
+            const flashcard = createBasicFlashcard(front, back, tags);
+            if (flashcard) {
+              flashcards.push(flashcard);
+            }
           }
-        });
+        }
+      }
+    } else if (/What\s+is|How\s+|Why\s+|When\s+|Where\s+/i.test(processedContent)) {
+      // Structure is likely "What is X? Back: Y" or similar question patterns
+      
+      // Find all question patterns followed by answers
+      const questionAnswerPattern = /(What|How|Why|When|Where|Which|Describe|Explain|List|Define|Name|Identify)[^?]+\??(?:\s+Back:|\n+)(.*?)(?=(?:What|How|Why|When|Where|Which|Describe|Explain|List|Define|Name|Identify)[^?]+\??(?:\s+Back:|\n+)|$)/gis;
+      
+      const matches = Array.from(processedContent.matchAll(questionAnswerPattern));
+      if (matches.length > 0) {
+        for (const match of matches) {
+          const fullMatch = match[0];
+          if (fullMatch.includes("Back:")) {
+            const [frontPart, backPart] = fullMatch.split(/\s+Back:|Back:/);
+            if (frontPart && backPart) {
+              const flashcard = createBasicFlashcard(frontPart.trim(), backPart.trim(), tags);
+              if (flashcard) {
+                flashcards.push(flashcard);
+              }
+            }
+          } else {
+            // Try to find a natural split between question and answer
+            const lines = fullMatch.split(/\n+/);
+            if (lines.length >= 2) {
+              const front = lines[0].trim();
+              const back = lines.slice(1).join(' ').trim();
+              if (front && back) {
+                const flashcard = createBasicFlashcard(front, back, tags);
+                if (flashcard) {
+                  flashcards.push(flashcard);
+                }
+              }
+            }
+          }
+        }
       }
     }
     
-    // Last resort: split by double newlines and try to extract Q&A pairs
-    if (flashcards.length < 1) {
-      console.log("Trying to find pairs separated by double newlines");
+    // If we still don't have cards, try a more aggressive approach
+    if (flashcards.length === 0) {
+      // Split content by double newlines to identify card boundaries
+      cardChunks = processedContent.split(/\n\s*\n/).filter(chunk => chunk.trim().length > 0);
       
-      const pairs = content.split(/\n\s*\n/).filter(p => p.trim().length > 0);
-      console.log("Found potential pairs: ", pairs.length);
-      
-      // Create flashcards from consecutive pairs of text
-      for (let i = 0; i < pairs.length - 1 && flashcards.length < maxCards; i += 2) {
-        const frontText = pairs[i]?.trim();
-        const backText = pairs[i + 1]?.trim();
-        
-        if (frontText && backText) {
-          flashcards.push({
-            id: uuidv4(),
-            front: frontText,
-            back: backText,
-            tags,
-            createdAt: new Date()
-          });
+      // If we have an odd number of chunks, assume they're paired
+      if (cardChunks.length >= 2) {
+        for (let i = 0; i < cardChunks.length - 1 && flashcards.length < maxCards; i += 2) {
+          const front = cardChunks[i].trim();
+          const back = cardChunks[i + 1].trim();
+          
+          if (front && back) {
+            const flashcard = createBasicFlashcard(front, back, tags);
+            if (flashcard) {
+              flashcards.push(flashcard);
+            }
+          }
+        }
+      } else {
+        // Last resort: try to parse each chunk individually
+        for (const chunk of cardChunks) {
+          // Check if the chunk contains both a question and answer
+          if (chunk.includes("Back:")) {
+            const [frontPart, backPart] = chunk.split(/\s+Back:|Back:/);
+            if (frontPart && backPart) {
+              const flashcard = createBasicFlashcard(frontPart.trim(), backPart.trim(), tags);
+              if (flashcard) {
+                flashcards.push(flashcard);
+              }
+            }
+          } else if (chunk.includes("?")) {
+            // Split by the question mark to separate question and answer
+            const parts = chunk.split(/\?/, 2);
+            if (parts.length === 2) {
+              const front = (parts[0] + "?").trim();
+              const back = parts[1].trim();
+              if (front && back) {
+                const flashcard = createBasicFlashcard(front, back, tags);
+                if (flashcard) {
+                  flashcards.push(flashcard);
+                }
+              }
+            }
+          }
         }
       }
     }
   }
   
   return flashcards.slice(0, maxCards);
+};
+
+// Helper function to check if content contains instruction-like text
+const shouldSkipInstructionContent = (content: string): boolean => {
+  const lowercased = content.toLowerCase();
+  return (
+    // Check for instruction-like phrases
+    lowercased.includes("how many") ||
+    lowercased.includes("quiz questions") ||
+    lowercased.includes("follow these") ||
+    lowercased.includes("formatting rules") ||
+    lowercased.includes("create flashcards") ||
+    lowercased.includes("create cards") ||
+    lowercased.includes("format each") ||
+    lowercased.includes("critical") ||
+    lowercased.includes("important formatting") ||
+    lowercased.includes("example:") ||
+    lowercased.includes("example card") ||
+    lowercased.includes("card 1") ||
+    lowercased.includes("card 2") ||
+    // Check for content that doesn't make sense as flashcards
+    lowercased.includes("front:") && lowercased.includes("back:") ||
+    // Check for square brackets that are likely part of the instructions
+    lowercased.includes("[square brackets]")
+  );
+};
+
+// Helper function to create a properly formatted basic flashcard
+const createBasicFlashcard = (front: string, back: string, tags: string[]): Flashcard | null => {
+  // Filter out flashcards that contain instruction-like content
+  if (shouldSkipInstructionContent(front) || shouldSkipInstructionContent(back) || 
+      // Additional checks specific to basic flashcards
+      back.length < 3 ||
+      front.length < 10 ||
+      (front.includes("how many") && back.match(/^\d+$/))
+  ) {
+    // Skip this flashcard
+    console.log("Skipping invalid flashcard with instruction-like content:", front);
+    return null;
+  }
+
+  // Clean up front text
+  let cleanFront = front
+    .replace(/^front:/i, "")
+    .replace(/^t\s+is/i, "What is")
+    .replace(/^t\s+/i, "What ")
+    .trim();
+  
+  // Ensure front text is a proper question
+  if (!cleanFront.match(/^(what|how|why|describe|explain|when|who|where|which|list|define|name|identify)/i)) {
+    cleanFront = "What " + cleanFront;
+  }
+  
+  // Clean up back text
+  const cleanBack = back
+    .replace(/^back:/i, "")
+    .trim();
+  
+  return {
+    id: uuidv4(),
+    front: cleanFront,
+    back: cleanBack,
+    tags,
+    createdAt: new Date()
+  };
 };
 
 // This is a wrapper component for using the flashcard generator in the practice-flashcards page
