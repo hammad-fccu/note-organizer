@@ -380,10 +380,82 @@ IMPORTANT: Create flashcards ONLY from the actual note content provided above. D
       
       // Wrap the entire process in a try-catch for extra safety
       try {
-        const flashcards = await generateFlashcardsWithLLM(options);
+        // First attempt at flashcard generation
+        let flashcards = await generateFlashcardsWithLLM(options);
         
+        // Check if we got the requested number of cards
         if (flashcards && Array.isArray(flashcards) && flashcards.length > 0) {
-          console.log(`Generated ${flashcards.length} flashcards successfully`);
+          console.log(`Generated ${flashcards.length} flashcards on first attempt`);
+          
+          // If we didn't get enough cards, try to generate more
+          if (flashcards.length < maxCards) {
+            console.log(`Got ${flashcards.length} cards but requested ${maxCards}, attempting to generate more...`);
+            
+            // Create a modified prompt that includes the existing cards to avoid duplicates
+            const remainingCards = maxCards - flashcards.length;
+            
+            // Get the note content
+            const note = getNoteById(noteId);
+            if (note) {
+              // Try up to 2 more times to generate the remaining cards
+              let retryCount = 0;
+              while (flashcards.length < maxCards && retryCount < 2) {
+                retryCount++;
+                
+                // Create a modified template with existing cards to avoid duplicates
+                const existingCardsText = flashcards.map((card, index) => {
+                  if (cardType === 'Cloze') {
+                    return `Card ${index + 1}\n${card.front}`;
+                  } else {
+                    return `Card ${index + 1}\nFront: ${card.front}\nBack: ${card.back}`;
+                  }
+                }).join('\n\n');
+                
+                const supplementalTemplate = `
+${promptTemplate}
+
+Here are the cards already generated (DO NOT DUPLICATE THESE):
+${existingCardsText}
+
+Now generate ${remainingCards} ADDITIONAL unique flashcards covering other important concepts from the note content.`;
+                
+                // Create supplemental options
+                const supplementalOptions: GeneratorOptions = {
+                  ...options,
+                  template: supplementalTemplate,
+                  maxCards: remainingCards,
+                  temperature: Math.min(options.temperature + 0.1, 1.0) // Increase temperature slightly for more variety
+                };
+                
+                // Try to generate additional cards
+                try {
+                  console.log(`Attempt ${retryCount} to generate ${remainingCards} more cards`);
+                  const additionalCards = await generateFlashcardsWithLLM(supplementalOptions);
+                  
+                  if (additionalCards && additionalCards.length > 0) {
+                    console.log(`Generated ${additionalCards.length} additional cards on attempt ${retryCount}`);
+                    
+                    // Merge the new cards with existing ones
+                    flashcards = [...flashcards, ...additionalCards];
+                    
+                    // Update for next loop iteration if needed
+                    if (flashcards.length < maxCards) {
+                      console.log(`Still need ${maxCards - flashcards.length} more cards`);
+                    }
+                  } else {
+                    console.log(`No additional cards generated on attempt ${retryCount}`);
+                    break; // Exit the loop if we couldn't generate any additional cards
+                  }
+                } catch (err) {
+                  console.error(`Error generating additional cards on attempt ${retryCount}:`, err);
+                  break; // Exit the loop if there was an error
+                }
+              }
+            }
+          }
+          
+          // Always return whatever cards we have at the end
+          console.log(`Final flashcard count: ${flashcards.length}`);
           onFlashcardsGenerated(flashcards);
         } else {
           console.error("No flashcards generated - empty array or invalid result");
