@@ -17,10 +17,15 @@ enum PracticeMode {
 
 // Function to export deck to Anki format
 const exportDeckToAnki = (cards: FlashcardReview[], deckName: string) => {
-  // Anki format header with tab separator
-  let ankiText = '#separator:tab\n';
+  // Anki format header with full headers for proper import
+  let ankiText = '';
+  
+  // Add headers that Anki recognizes
+  ankiText += `#notetype:Basic\n`;
+  ankiText += `#deck:${deckName}\n`;
   ankiText += '#html:true\n';
-  ankiText += '#columns:front\tback\ttags\n';
+  ankiText += '#separator:Tab\n';
+  ankiText += '#columns:Front\tBack\tTags\n';
   
   // Add each card
   cards.forEach(card => {
