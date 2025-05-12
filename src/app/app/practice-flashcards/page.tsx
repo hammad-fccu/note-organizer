@@ -8,6 +8,7 @@ import { FlashcardReview } from '@/types/flashcards';
 import { v4 as uuidv4 } from 'uuid';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { GeneratorTab } from '@/components/flashcards/FlashcardGenerator';
+import eventBus from '@/utils/eventBus';
 
 enum PracticeMode {
   IMPORT = 'import',
@@ -70,6 +71,30 @@ export default function PracticeFlashcardsPage() {
     };
     
     loadSavedDecks();
+  }, []);
+  
+  // Listen for deck update events from the event bus
+  useEffect(() => {
+    if (!eventBus) return;
+    
+    const unsubscribe = eventBus.on('flashcard-deck-updated', (data: {deckId: string, cards: FlashcardReview[]}) => {
+      if (data && data.deckId) {
+        console.log(`Received flashcard deck update for: ${data.deckId}`);
+        
+        // Update the deck in the state
+        setSavedDecks(prevDecks => ({
+          ...prevDecks,
+          [data.deckId]: data.cards
+        }));
+        
+        // Don't automatically switch tabs - let the user stay where they are
+      }
+    });
+    
+    // Clean up the subscription when the component unmounts
+    return () => {
+      unsubscribe();
+    };
   }, []);
   
   // Save decks to localStorage when they change

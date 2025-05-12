@@ -6,6 +6,7 @@ import { saveAs } from 'file-saver';
 import { useRouter } from 'next/navigation';
 import { FlashcardReview } from '@/types/flashcards';
 import { v4 as uuidv4 } from 'uuid';
+import eventBus from '@/utils/eventBus';
 
 interface ExportControlsProps {
   flashcards: Flashcard[];
@@ -17,7 +18,7 @@ export default function ExportControls({ flashcards, deckName, modelName = 'Basi
   const router = useRouter();
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState<boolean | null>(null);
-  const [exportFormat, setExportFormat] = useState<'txt' | 'practice'>('txt');
+  const [exportFormat, setExportFormat] = useState<'txt' | 'practice'>('practice');
 
   // Convert flashcards to the format needed for practice mode
   const convertToPracticeFormat = (cards: Flashcard[]): FlashcardReview[] => {
@@ -126,9 +127,15 @@ export default function ExportControls({ flashcards, deckName, modelName = 'Basi
       // Save back to localStorage
       localStorage.setItem('practice_flashcard_decks', JSON.stringify(savedDecks));
       
-      // Only navigate if we're not already on the practice-flashcards page
-      // Check if the current path already includes practice-flashcards
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/app/practice-flashcards')) {
+      // Handle case when we're already on the practice-flashcards page
+      if (typeof window !== 'undefined' && window.location.pathname.includes('/app/practice-flashcards')) {
+        // Emit an event that the practice flashcards page can listen for
+        eventBus?.emit('flashcard-deck-updated', {
+          deckId,
+          cards: practiceCards
+        });
+      } else {
+        // Navigate to the practice page
         router.push('/app/practice-flashcards');
       }
       
@@ -218,16 +225,6 @@ export default function ExportControls({ flashcards, deckName, modelName = 'Basi
           </label>
           <div className="flex space-x-3">
             <button
-              onClick={() => setExportFormat('txt')}
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
-                exportFormat === 'txt'
-                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              Text File
-            </button>
-            <button
               onClick={() => setExportFormat('practice')}
               className={`px-3 py-2 rounded-md text-sm font-medium ${
                 exportFormat === 'practice'
@@ -236,6 +233,16 @@ export default function ExportControls({ flashcards, deckName, modelName = 'Basi
               }`}
             >
               Practice Mode
+            </button>
+            <button
+              onClick={() => setExportFormat('txt')}
+              className={`px-3 py-2 rounded-md text-sm font-medium ${
+                exportFormat === 'txt'
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              Text File
             </button>
           </div>
           

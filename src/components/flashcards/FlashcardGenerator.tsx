@@ -711,7 +711,7 @@ const parseContentIntoFlashcards = (content: string, tags: string[], cardType: C
     .replace(/\bWh\b\s*\n*\s*\bt\b/gi, "What")
     .replace(/\bt\s+is\b/gi, "What is")
     .replace(/\bt\s+/gi, "What ")
-    .replace(/\bWh\s+/gi, "What ")
+    .replace(/\bWh\s+/gi, "What ") 
     .replace(/\s+/g, ' ') // Normalize whitespace
     .replace(/Card\s+\d+\s*/g, "\n\n") // Replace "Card X" with double newlines for separation
     .replace(/Front:/gi, "\nFront:") // Ensure Front: is on its own line
@@ -733,15 +733,15 @@ const parseContentIntoFlashcards = (content: string, tags: string[], cardType: C
           console.log("Skipping invalid cloze card with instruction-like content:", match);
           continue;
         }
-        
-        flashcards.push({
-          id: uuidv4(),
+          
+          flashcards.push({
+            id: uuidv4(),
           front: match.trim(),
           back: match.replace(/\[([^\]]+)\]/g, '$1').trim(),
-          tags,
-          createdAt: new Date()
-        });
-      }
+            tags,
+            createdAt: new Date()
+          });
+        }
     }
     
     // If no cloze deletions found, look for any text with square brackets
@@ -756,13 +756,13 @@ const parseContentIntoFlashcards = (content: string, tags: string[], cardType: C
           console.log("Skipping invalid cloze card with instruction-like content:", fragment);
           continue;
         }
-        
-        flashcards.push({
-          id: uuidv4(),
+          
+          flashcards.push({
+            id: uuidv4(),
           front: fragment.trim(),
           back: fragment.replace(/\[([^\]]+)\]/g, '$1').trim(),
-          tags,
-          createdAt: new Date()
+            tags,
+            createdAt: new Date()
         });
       }
     }
@@ -777,8 +777,8 @@ const parseContentIntoFlashcards = (content: string, tags: string[], cardType: C
       // Cards with explicit Front:/Back: labels
       const frontBackPattern = /Front:(.*?)Back:(.*?)(?=Front:|$)/gis;
       const matches = Array.from(processedContent.matchAll(frontBackPattern));
-      
-      if (matches.length > 0) {
+    
+    if (matches.length > 0) {
         for (const match of matches) {
           const front = match[1].trim();
           const back = match[2].trim();
@@ -923,8 +923,8 @@ const createBasicFlashcard = (front: string, back: string, tags: string[]): Flas
     .replace(/^front:/i, "")
     .replace(/^t\s+is/i, "What is")
     .replace(/^t\s+/i, "What ")
-    .trim();
-  
+      .trim();
+      
   // Ensure front text is a proper question
   if (!cleanFront.match(/^(what|how|why|describe|explain|when|who|where|which|list|define|name|identify)/i)) {
     cleanFront = "What " + cleanFront;
@@ -935,7 +935,7 @@ const createBasicFlashcard = (front: string, back: string, tags: string[]): Flas
     .replace(/^back:/i, "")
     .trim();
   
-  return {
+    return {
     id: uuidv4(),
     front: cleanFront,
     back: cleanBack,
