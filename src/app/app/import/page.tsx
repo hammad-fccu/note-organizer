@@ -6,7 +6,7 @@ import FileUploader from '@/components/FileUploader';
 import { processFile, ProcessedFile, createNoteFromProcessedFile } from '@/utils/fileProcessing';
 import { useNotes } from '@/store/NoteStore';
 import Link from 'next/link';
-import { generateTags } from '@/utils/aiSummary';
+import { generateTags, callGeminiApi } from '@/utils/aiSummary';
 import InfoModal from '@/components/InfoModal';
 
 // Add a function to normalize and deduplicate tags (reusing the same function pattern from other pages)
@@ -110,12 +110,20 @@ export default function ImportPage() {
   // Function to safely generate tags without throwing errors
   const safelyGenerateTags = async (noteId: string, fileContent: string, fileTitle: string): Promise<void> => {
     try {
-      // Get API key, checking both possible storage keys
-      const apiKey = localStorage.getItem('openRouterApiKey') || '';
+      console.log(`Starting tag generation for note ${noteId} with title "${fileTitle}"`);
       
-      if (!apiKey || fileContent.length < 50) {
-        console.log('Skipping tag generation: ' + 
-          (!apiKey ? 'No API key available' : 'Content too short'));
+      // Get API key, checking both possible storage keys
+      let apiKey = '';
+      try {
+        apiKey = localStorage.getItem('openRouterApiKey') || '';
+        console.log(`API key found: ${apiKey ? 'Yes' : 'No'}`);
+      } catch (storageErr) {
+        console.error('Error accessing localStorage:', storageErr);
+      }
+      
+      // Skip only if content is too short
+      if (!fileContent || fileContent.length < 50) {
+        console.log(`Skipping tag generation: Content too short (${fileContent?.length || 0} chars)`);
         return;
       }
       
@@ -128,15 +136,41 @@ export default function ImportPage() {
         ? fileContent.substring(0, maxContentLength) + "... (content truncated for tag generation)"
         : fileContent;
       
-      console.log(`Generating tags for "${fileTitle}" (length: ${textToProcess.length})`);
+      console.log(`Generating tags for "${fileTitle}" (content length: ${textToProcess.length})`);
       
-      // Generate tags using the model
-      const generatedTags = await generateTags({
-        text: textToProcess,
-        title: fileTitle,
-        model,
-        apiKey
-      });
+      // Create the prompt for tag generation
+      const safeTitle = fileTitle || 'Untitled';
+      const prompt = `Please analyze the following note titled "${safeTitle}" and generate 3-7 relevant tags or keywords that best categorize this content. Tags should be single words or short phrases (max 2-3 words) that capture the main topics, concepts, and themes. Return only the tags separated by commas without any other text or explanation.\n\nNote content:\n${textToProcess}`;
+      
+      let tagsText = '';
+      let generatedTags = [];
+      
+      // If no API key, use Gemini directly via the API's callGeminiApi function
+      if (!apiKey) {
+        console.log("No OpenRouter API key found, using Gemini API directly for tag generation");
+        try {
+          tagsText = await callGeminiApi(prompt);
+          console.log("Successfully retrieved tags from Gemini API:", tagsText);
+          
+          // Process the response to extract clean tags
+          generatedTags = tagsText.split(',')
+            .map(tag => (tag || '').trim())
+            .filter(tag => tag !== '');
+        } catch (geminiError) {
+          console.error("Gemini API failed:", geminiError);
+          return; // Return without tags
+        }
+      } else {
+        // Use OpenRouter API with the model
+        generatedTags = await generateTags({
+          text: textToProcess,
+          title: fileTitle,
+          model,
+          apiKey
+        });
+      }
+      
+      console.log(`Raw generated tags result:`, generatedTags);
       
       // Validate the tags array
       if (!generatedTags || !Array.isArray(generatedTags)) {
@@ -148,10 +182,21 @@ export default function ImportPage() {
       if (generatedTags.length > 0) {
         // Normalize and deduplicate tags
         const uniqueTags = normalizeTags(generatedTags);
-        console.log(`Tags generated for ${fileTitle}:`, uniqueTags);
+        console.log(`Normalized tags for ${fileTitle}:`, uniqueTags);
+        
+        // Check if updateNoteTags is available
+        if (typeof updateNoteTags !== 'function') {
+          console.error('updateNoteTags function is not available');
+          return;
+        }
         
         // Update the note's tags in the store
-        updateNoteTags(noteId, uniqueTags);
+        try {
+          updateNoteTags(noteId, uniqueTags);
+          console.log(`Successfully updated tags for note ${noteId}`);
+        } catch (updateErr) {
+          console.error(`Error updating tags for note ${noteId}:`, updateErr);
+        }
       } else {
         console.log(`No tags generated for ${fileTitle}`);
       }
@@ -162,9 +207,14 @@ export default function ImportPage() {
   };
 
   const handleImportAll = async () => {
+    console.log(`Starting import for ${processedFiles.length} files`);
+    let importedNoteIds = [];
+    
     // Import all processed files as notes immediately
     for (const processedFile of processedFiles) {
       try {
+        console.log(`Creating note from file: ${processedFile.sourceFileName}`);
+        
         // Create basic note object
         const basicNoteData = {
           title: processedFile.title,
@@ -179,21 +229,27 @@ export default function ImportPage() {
         
         // Add note immediately
         const noteId = addNote(basicNoteData);
+        console.log(`Note created with ID: ${noteId}`);
+        importedNoteIds.push(noteId);
         
-        // If API key exists, start tag generation but don't wait for it
-        if (typeof window !== 'undefined') {
-          // Fire and forget - don't await this
-          safelyGenerateTags(noteId, processedFile.content, processedFile.title)
-            .catch(err => {
-              // This should never happen due to the error handling in safelyGenerateTags,
-              // but just in case there's some uncaught error
-              console.error(`Unhandled error in tag generation for ${processedFile.title}:`, err);
-            });
-        }
+        // Start tag generation but don't wait for it
+        setTimeout(() => {
+          try {
+            console.log(`Starting delayed tag generation for note ${noteId}`);
+            safelyGenerateTags(noteId, processedFile.content, processedFile.title)
+              .catch(err => {
+                console.error(`Unhandled error in tag generation for ${processedFile.title}:`, err);
+              });
+          } catch (err) {
+            console.error(`Error initiating tag generation for ${processedFile.title}:`, err);
+          }
+        }, 500); // Short delay to ensure note is fully saved
       } catch (error) {
         console.error(`Error creating note from file ${processedFile.sourceFileName}:`, error);
       }
     }
+    
+    console.log(`Import complete. Imported ${importedNoteIds.length} notes.`);
     
     // Navigate immediately, don't wait for tag generation
     if (folderId) {

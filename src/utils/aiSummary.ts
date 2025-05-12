@@ -28,7 +28,7 @@ export const AI_MODELS = [
 const GEMINI_API_KEY = "AIzaSyBAISSbMog7i4VjD1ala_V9G9yePCYJI-8";
 
 // Function to call Gemini API as a fallback
-const callGeminiApi = async (prompt: string): Promise<string> => {
+export const callGeminiApi = async (prompt: string): Promise<string> => {
   console.log("Falling back to Gemini API");
   
   const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY, {
